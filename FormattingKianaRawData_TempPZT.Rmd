@@ -1,0 +1,843 @@
+---
+title: "Formatting Kiana Raw Data"
+author: "little fish"
+date: "4/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+# import the data
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(here)
+
+setwd("~/Documents/School/Fall2024/Stat414/project")
+
+
+kiana.rawdat<-read.csv("allgr_array_KianaRawdat.csv")
+
+head(kiana.rawdat)
+
+```
+
+#look at data:
+```{r}
+#View(kiana.rawdat)
+head(kiana.rawdat)
+
+summary(kiana.rawdat)
+
+head(kiana.rawdat)
+#made month.day be read as a character by R
+
+```
+
+Clean Up data:
+#filter so we see reading near the clusters only:
+```{r}
+kiana.cluster<- filter(kiana.rawdat, array== "Cluster")%>%
+  mutate("grovecode"= grove)
+
+head(kiana.cluster)
+#now only 484 obs, rather than 2,404obs
+
+#select only the columns you need: 
+kiana.cluster<- select(kiana.cluster, X, array, grovecode, month.day, daynum, temp.min, temp.avg, temp.max, temp.std)
+#21->7 variables now
+
+#Format data columns (make date column, convert sove values to factors):
+#convert grove to factor:
+kiana.cluster<- mutate(kiana.cluster, grovecode= as.factor(grovecode))
+head(kiana.cluster)
+```
+
+
+
+
+### SIDE QUEST 6/10/2022:
+COUNT SEQUENTIAL # DAYS IN A ROW That Tmax was above 25C at each grove
+
+I ran these and counted the # sequential days at eah site, with Tmax above 25C and 27C, and Tmin below 10C.
+Results are in table format, in teh "Results" tab of the excel doc: *ArcMap_PZT_TminTmaxCalcs_R_reduced_andKianadata_04.xlsb* which can be found here:
+C:\Users\afish\Desktop\GradSchool_Quarters\Thesis_Stuff\PHYSIO\Making_PhysioZone_Figure_Feb2021\ 
+
+```{r}
+str(kiana.cluster) # look  @ at grove codes
+levels(kiana.cluster$grovecode) 
+#"AB" "BL" "HB" "HR" "MB" "OC" "P"  "SC" "TC"
+
+#filter for days that had Tmax aboec 25C: 
+Tmax25 <- kiana.cluster %>% 
+  filter(temp.max >= 25)
+  
+Tmax25_BL <- filter(Tmax25, grovecode=="BL")
+
+Tmax25_HB <- filter(Tmax25, grovecode=="HB")
+
+Tmax25_HR <- filter(Tmax25, grovecode=="HR")
+
+Tmax25_MB <- filter(Tmax25, grovecode=="MB")
+
+Tmax25_OC <- filter(Tmax25, grovecode=="OC")
+
+Tmax25_P <- filter(Tmax25, grovecode=="P")
+
+Tmax25_SC <- filter(Tmax25, grovecode=="SC")
+
+Tmax25_TC <- filter(Tmax25, grovecode=="TC")
+
+
+
+#filter for days that had Tmax aboec 27C: 
+Tmax27 <- kiana.cluster %>% 
+  filter(temp.max >= 27)
+  
+Tmax27_BL <- filter(Tmax27, grovecode=="BL") #zero days w/ Tmax Above 27C
+
+Tmax27_HB <- filter(Tmax27, grovecode=="HB") #20 days (non sequential) wit Tmax> 27C
+
+Tmax27_HR <- filter(Tmax27, grovecode=="HR")
+
+Tmax27_MB <- filter(Tmax27, grovecode=="MB")
+
+Tmax27_OC <- filter(Tmax27, grovecode=="OC")
+
+Tmax27_P <- filter(Tmax27, grovecode=="P")
+
+Tmax27_SC <- filter(Tmax27, grovecode=="SC")
+
+Tmax27_TC <- filter(Tmax27, grovecode=="TC")
+
+# tmin below 10C
+Tmin10C <- kiana.cluster %>% 
+  filter(temp.min <= 10)
+  
+Tmin10C_BL <- filter(Tmin10C, grovecode=="BL")
+
+Tmin10C_HB <- filter(Tmin10C, grovecode=="HB")
+
+Tmin10C_HR <- filter(Tmin10C, grovecode=="HR")
+
+Tmin10C_MB <- filter(Tmin10C, grovecode=="MB")
+
+Tmin10C_OC <- filter(Tmin10C, grovecode=="OC")
+
+Tmin10C_P <- filter(Tmin10C, grovecode=="P")
+
+Tmin10C_SC <- filter(Tmin10C, grovecode=="SC")
+
+Tmin10C_TC <- filter(Tmin10C, grovecode=="TC")
+
+
+##Tavg below 10C:
+Tavg10C <- kiana.cluster %>% 
+  filter(temp.avg <= 10)
+  
+Tavg10C_BL <- filter(Tavg10C, grovecode=="BL")
+
+Tavg10C_HB <- filter(Tavg10C, grovecode=="HB")
+
+Tavg10C_HR <- filter(Tavg10C, grovecode=="HR")
+
+Tavg10C_MB <- filter(Tavg10C, grovecode=="MB")
+
+Tavg10C_OC <- filter(Tavg10C, grovecode=="OC")
+
+Tavg10C_P <- filter(Tavg10C, grovecode=="P")
+
+Tavg10C_SC <- filter(Tavg10C, grovecode=="SC")
+
+Tavg10C_TC <- filter(Tavg10C, grovecode=="TC")
+
+
+# tavg above 15C (min tem p to fly without having to shiver)
+Tavg15C <- kiana.cluster %>% 
+  filter(temp.avg >= 15)
+  
+Tavg15C_BL <- filter(Tavg15C, grovecode=="BL") # 5 days total
+
+Tavg15C_HB <- filter(Tavg15C, grovecode=="HB") #17 days total
+
+Tavg15C_HR <- filter(Tavg15C, grovecode=="HR")#9 days total
+
+Tavg15C_MB <- filter(Tavg15C, grovecode=="MB")#9 days total
+
+Tavg15C_OC <- filter(Tavg15C, grovecode=="OC") # 8 days total
+
+Tavg15C_P <- filter(Tavg15C, grovecode=="P") # 1 days total
+
+Tavg15C_SC <- filter(Tavg15C, grovecode=="SC")# 1 days total
+
+Tavg15C_TC <- filter(Tavg15C, grovecode=="TC") #1 days total
+
+      # count how many days were recorded for each grove so you can calculat % days av temp is above 15C
+kiana.cluster22 <- kiana.cluster %>% mutate(grovecode= as.factor(grovecode))
+kiana.cluster22 %>% count(grovecode)
+
+
+## DAYS BELOW (TAVG<<<<<=15C) DO NOT USE IN TOTAL TABLE... # DAYS BELOOWWWE OR = TO 15c
+### BL = 5/42
+### HB = 17/65
+### HR = 9/34
+### MB = 9/ 55
+### OC = 8/80
+### P = 1/57
+### SC = 1/52
+### TC = 1/31
+```
+
+```{r}
+# tavg above 13C (min tem p to fly with shivering in shade)
+Tavg13C <- kiana.cluster %>% 
+  filter(temp.avg >= 13)
+  
+Tavg13C_BL <- filter(Tavg13C, grovecode=="BL") # 11 days total
+
+Tavg13C_HB <- filter(Tavg13C, grovecode=="HB") # 50 days total
+
+Tavg13C_HR <- filter(Tavg13C, grovecode=="HR")# 25 days total
+
+Tavg13C_MB <- filter(Tavg13C, grovecode=="MB")#27 days total
+
+Tavg13C_OC <- filter(Tavg13C, grovecode=="OC") #41  days total
+
+Tavg13C_P <- filter(Tavg13C, grovecode=="P") # 23 days total
+
+Tavg13C_SC <- filter(Tavg13C, grovecode=="SC")# 27 days total
+
+Tavg13C_TC <- filter(Tavg13C, grovecode=="TC") # 8 days total
+
+      # count how many days were recorded for each grove so you can calculat % days av temp is above 15C
+kiana.cluster22 <- kiana.cluster %>% mutate(grovecode= as.factor(grovecode))
+kiana.cluster22 %>% count(grovecode)
+
+
+## DAYS ABOVE (TAVG>=13C) 
+### BL =  11/42
+### HB = 50/65
+### HR = 25/34
+### MB = 27/ 55
+### OC = 41/80
+### P = 23/57
+### SC = 27/52
+### TC = 8/31
+
+```
+
+
+
+###BACK TO OLD CODE:
+It looks like daynum represents the day # relative to the time span of the observation period. For example daynum #1 =  the 1st day any data was recorded in the project for ANY grove: 12-01-2018. For example, if the minimum daynum was 7 at a grove, that means the data loggers started recording 6 days after the first data logger went up (at another grove). 
+
+###### to truncate the data so the dates being used are the same accross all sites, we must determine the HIGHEST min.daynum among all sites/grove, and also determine the LOWEST max.daynum among all the sites/groves. Those are the places we will truncate by. 
+
+
+
+ 
+# create columns that identify the first day  and last day was collected at EACH grove(site).
+```{r}
+#find the first date data was collected for each site:
+
+k.cluster.2<- kiana.cluster %>%
+  group_by(grovecode) %>%
+  mutate(
+    min.daynum = min(daynum, na.rm = T), #na.rm= TRUE removes NAs from calc
+    max.daynum = max(daynum, na.rm = T)
+  )%>%
+  arrange(grovecode)
+
+#View(k.cluster.bygroves)
+
+# now we want to look for the HIGHEST min.daynum, and LOWEST max.daynum
+summary(k.cluster.2)
+
+#highest min.daynum (latest recorded start date of any grove) = 18
+                #corresponding date= 12/18/2018
+#lowest max.daynum (earliest recorded end date of any grove) = 41 
+                #corresponding date= 01/10/2019
+
+```
+#highest min.daynum (latest recorded start date of any grove) = 18
+                # corresponding date= 12/18/2018
+#lowest max.daynum (earliest recorded end date of any grove) = 41 
+                # corresponding date= 01/10/2019
+
+
+
+
+# truncate the data...
+## (based on latest start date, and earliest end date):
+```{r}
+
+# select date range using daynum 
+
+ k.cluster.trunc <- kiana.cluster%>% filter( between(daynum, 18, 41) )
+
+#View(k.cluster.trunc)
+
+```
+
+
+
+
+# add columns for average Tmin, Tavg, and Tmax calc. by GROVE
+-- NOTE dat is already truncated to between 12/18/18-1/10/19, and only temp loggers used at the cluster
+
+```{r}
+# adds new columns to existing dataset:
+
+k.cluster.trunc<- k.cluster.trunc %>%
+  group_by(grovecode) %>%
+  mutate(
+    grmean.T.min = mean(temp.min, na.rm = T), #na.rm= TRUE removes NAs from calc
+    grmean.T.avg = mean(temp.avg, na.rm = T),
+    grmean.T.max= mean(temp.max, na.rm= T)
+  )%>%
+  arrange(grovecode)
+
+summary(k.cluster.trunc)
+
+
+#View(k.cluster.trunc)
+
+
+
+
+#make summary table of Tmin Tmax by GROVE, (still for trunc. date range)
+
+k.cluster.summary<- k.cluster.trunc %>% 
+  group_by(grovecode) %>%
+  summarise(
+    grmean.T.min = mean(temp.min, na.rm = T), #na.rm= TRUE removes NAs from calc
+    grmean.T.avg = mean(temp.avg, na.rm = T),
+    grmean.T.max= mean(temp.max, na.rm= T)
+  )%>%
+  arrange(grovecode) 
+
+k.cluster.summary
+
+```
+
+
+
+#create new data frame with lat + lon, add results
+```{r}
+#make new df w/ latitudes to each corresponding grove
+
+grovename <- c("MorroBay", "Pismo", "Oceano", "BlackLake", "SpringCanyon", "HollisterRanch", "Tecolote", "AB", "HarborBlvd")
+grovecode <- c("MB", "P", "OC", "BL", "SC", "HR", "TC", "AB", "HB")
+latit <- c( 18, 16,  14,  12,  10,  8,  6,  4,  2)
+notes<- c("data= average Tmin/Tmax/Tavg from december18th,2018, to Jan10th, 2019--as this is the only time span in which all the groves were collecting data all at once. avged accross days")
+
+grove.df<- data.frame(grovecode, latit, grovename, notes)
+
+head(grove.df)
+
+
+
+#add results:
+kianadat.summary.Dec18.Jan10<- left_join(k.cluster.summary, grove.df, by="grovecode")
+
+head(kianadat.summary.Dec18.Jan10)
+
+#write.csv(kianadat.summary.Dec18.Jan10,"kianadat.summary.Dec18.Jan10.csv")
+
+View(kianadat.summary.Dec18.Jan10)
+
+```
+
+
+
+# GREAT! ----
+###########################################################################
+#####################   PART 2-- MAKING FIGURES W/ KIANA'S DATA   ############
+########################################################################
+
+# FIGURES
+
+
+#Data formatting 
+```{r}
+
+#rename df to be something easier to work with:
+
+kdat.sum<-kianadat.summary.Dec18.Jan10 %>%
+  mutate(Lat.factor=as.factor(latit))%>%#have new col Lat = latitude as factor 
+  unite("lat.fact.grove", Lat.factor, grovename, sep = "_", na.rm=TRUE, remove = FALSE)
+
+# kdat.sum has 9 obs (rows), of 7 vars
+
+
+
+# use gather function to add all temp values (min/avg/max) into the same column
+kdat.sum.gather<- gather(kdat.sum, key = "gatherkey", value = "Temp", grmean.T.min, grmean.T.max, grmean.T.avg)
+
+
+#should have 9x3 = 27 rows (bc tmin,tmax and tavg are now all in same col.)
+dim(kdat.sum.gather)
+
+    # great success!!
+
+
+
+
+
+# round the values in the Temp column so they look pretty on the graph:
+
+
+kdat.sum.gather<-kdat.sum.gather %>%
+  mutate(Temp=round(Temp, digits = 2))
+
+#remove the grove AB (Arrundell Baranca)   bc kiana says the tmax is off bc of direct sunlight issues
+
+
+kdat.sum.gather <- filter(kdat.sum.gather, grovecode!="AB")
+
+kdat.sum.gather
+
+```
+
+
+
+
+
+
+
+#the graph of JUST KIANA TRUNCATED DATA:
+```{r}
+kdat1<-ggplot(data = kdat.sum.gather)+
+  geom_line(aes(x = Temp, y = Lat.factor, color = Lat.factor, size = 8))+
+  geom_point(aes(x = Temp, y = Lat.factor), shape = 16, size = 1.5, color = "black")+
+  geom_text(aes(x = Temp, y = Lat.factor, label = paste0(Temp)), size = 3, 
+            nudge_y = -0.3, angle = 1, check_overlap = TRUE)+
+  labs(x = "Temp in Deg. C", y = "Latitude", title = "Observed Overwintering Temperature Ranges From 12/18/18-01/10/19 by OW Clusters")+
+  scale_x_continuous(limits = c(-16, 40), breaks = seq("-16", 40, 2))+
+  #scale_y_continuous(limits = c(0,16), breaks=seq(0,30,5))+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank())
+
+
+kdat1
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################### #PART 1B  ################################################################ 
+
+# do all teh same data managment, but do it with Temp Loggers from all grove locatins, rather than just dataloggers at the cluster, but for same date range:
+
+#select only the columns you need: 
+```{r}
+kiana.rawdat1<- kiana.rawdat %>%
+  mutate("grovecode" = grove)%>%
+  select( X, array, month.day, daynum, grovecode, temp.min, temp.avg, temp.max, temp.std)
+#21->7 variables now
+```
+
+#Format data columns (make date column, convert sove values to factors)
+```{r}
+
+head(kiana.rawdat1)
+
+
+#convert grove to factor:
+kiana.rawdat1<- kiana.rawdat1 %>%
+  mutate(grovecode= as.factor(grovecode)) %>%
+  filter( between(daynum, 18, 41) ) %>%
+  group_by(grovecode) %>%
+  mutate(
+    grmean.T.min = mean(temp.min, na.rm = T), #na.rm= TRUE removes NAs from calc
+    grmean.T.avg = mean(temp.avg, na.rm = T),
+    grmean.T.max= mean(temp.max, na.rm= T)
+  )%>%
+  arrange(grovecode)
+
+summary(kiana.rawdat1)
+
+
+#make summary table of Tmin Tmax by GROVE
+
+k.rawdat1.summary<- kiana.rawdat1 %>% 
+  group_by(grovecode) %>%
+  summarise(
+    grmean.T.min = mean(temp.min, na.rm = T), #na.rm= TRUE removes NAs from calc
+    grmean.T.avg = mean(temp.avg, na.rm = T),
+    grmean.T.max= mean(temp.max, na.rm= T)
+  )%>%
+  arrange(grovecode)
+
+#take grove.df we made with latitude values, add new full results to it!
+head(grove.df)
+
+#add results:
+k.fullgrove.sum<- left_join(k.rawdat1.summary, grove.df, by="grovecode")
+
+  head(k.fullgrove.sum)
+
+#kianadat.summary.Dec18.Jan10<- write.csv("kianadat.fullgrove.summary.Dec18.Jan10.csv")
+
+```
+
+```{r}
+#rename df to be something easier to work with:
+k.fullgrove.sum<-k.fullgrove.sum %>%
+  mutate(Lat.factor=as.factor(latit))#have new col Lat = latitude as factor
+          # kdat.sum has 9 obs (rows), of 7 vars
+
+
+# use gather function to add all temp values (min/avg/max) into the same column
+k.fullgrove.sum.gather<- gather(k.fullgrove.sum, key = "gatherkey", value = "Temp", grmean.T.min, grmean.T.max, grmean.T.avg)
+
+
+#should have 9x3 = 27 rows (bc tmin,tmax and tavg are now all in same col.)
+dim(k.fullgrove.sum.gather)
+
+    # great success!!
+
+
+# round the values in the Temp column so they look pretty on the graph:
+k.fullgrove.sum.gather<-kdat.sum.gather %>%
+  mutate(Temp=round(Temp, digits = 2))
+
+
+head(k.fullgrove.sum.gather)
+```
+
+
+# corresponding gaph, of the SAME time frame, but if we used all teh sensors around the grove, not just by a cluster
+```{r}
+
+kdat1full<-ggplot(data = k.fullgrove.sum.gather)+
+  geom_line(aes(x = Temp, y = Lat.factor, color = Lat.factor, size = 8))+
+  geom_point(aes(x = Temp, y = Lat.factor), shape = 16, size = 1.5, color = "black")+
+  geom_text(aes(x = Temp, y = Lat.factor, label = paste0(Temp)), size = 3, 
+            nudge_y = -0.3, angle = 1, check_overlap = TRUE)+
+  labs(x = "Temp in Deg. C", y = "Latitude", title = "Observed Overwintering Temperature Ranges From 12/18/18-01/10/19 by OW full grove")+
+  scale_x_continuous(limits = c(-16, 40), breaks = seq("-16", 40, 2))+
+  #scale_y_continuous(limits = c(0,16), breaks=seq(0,30,5))+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank())
+
+kdat1full
+#PROBLEM: LOOKS THE EXACT SAME AS THE CLUSTER ONLY GRAPH-- CODE WENT WRONG AT SOME POINT-- PROBABLY USED AN INTERMEDIARY OBJECT FROM THE CLUSTER ONLY DATA CLEANING PROCESS
+
+
+```
+
+
+
+#PART 2!!!
+
+
+
+#Okay, francis wants 1 figure to JUST be  Region Data (calculated in ArcMap) + Kiana's data, truncated. Here I will import that regional data, and join it with Kiana's truncated data.
+###### I will also have an alternative set of regional data, were we do not include the month of            November, since kiana's data does not occur then- therefore the comparison will be a                little more ... temporally aligned?
+
+#import regional data, and format it for binding with kiana data:
+```{r}
+
+# bring in full data set to pull in all regional values
+PZTred <-read.csv("ArcMap_PZT_TminTmaxCalcs_R_reduced_andKianadata_04.04.21.csv")
+PZTow <- filter(PZTred, Stage== "OW Adult")
+PZTow <- PZTow %>%
+  mutate(Lat4f = as.factor(Lat4)) %>%
+  mutate(PZTow,TrtINFO = as.factor(YearxLocationbyTrt))%>%
+  mutate(LatCombo=as.numeric(Lat))
+
+# df for all the regional dat
+PZTow_regiondat <-PZTow %>% filter(Data.Source=="PRISM/ me!")%>%
+  mutate(grovename=Grove)
+ 
+
+
+# make alternative truncated regional data set that removes all measurements that contains data form november
+PZTow_regiondat_noNOV <- PZTow_regiondat %>% filter(Month != "NOV", Measurement!="TAVG")
+
+PZTow_regiondat
+
+
+```
+
+# take kiana's truncated data, and frmat it to be able to bind with the regional data, then BIND THEM!
+```{r}
+
+kdat.sum.gather <- kdat.sum.gather %>%
+  mutate(LatCombo=as.numeric(latit))
+
+
+# bind kdat.sum.gather to the OW data
+kdat_regional<- kdat.sum.gather%>%
+  bind_rows(kdat.sum.gather, PZTow_regiondat) 
+
+kdat_regional<- kdat_regional%>%
+  mutate(kdat_regional, LatCombof= as.factor(LatCombo))%>%
+  unite("lat.fact.gr", LatCombof, grovename, sep = "_", na.rm=TRUE, remove = FALSE)
+
+head(kdat_regional)
+
+```
+
+# graph full regional data with truncated kiana data
+```{r}
+#FRANCIS FIGURE 1:
+kdat_regional.graph <-ggplot(data = kdat_regional)+
+  geom_line(aes(x = Temp, y = LatCombof, color = lat.fact.gr, size = 8))+
+  geom_point(aes(x = Temp, y = LatCombof), shape = 16, size = 1.5, color = "black")+
+  geom_text(aes(x = Temp, y = LatCombof, label = paste0(Temp)), size = 3, 
+            nudge_y = -0.3, angle = 1, check_overlap = TRUE)+
+  labs(x = "Temp in Deg. C", y = "Latitude", title = "Observed Overwintering Temperature Ranges From 12/18/18-01/10/19 by OW full grove")+
+  scale_x_continuous(limits = c(-10, 40), breaks = seq("-16", 40, 2))+
+  #scale_y_continuous(limits = c(0,16), breaks=seq(0,30,5))+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank())
+
+kdat_regional.graph
+
+#OR w/ labeled y-axis:
+
+kdat_regional.graph <-ggplot(data = kdat_regional)+
+  geom_line(aes(x = Temp, y = lat.fact.gr, color = lat.fact.gr, size = 8))+
+  geom_point(aes(x = Temp, y = lat.fact.gr), shape = 16, size = 1.5, color = "black")+
+  geom_text(aes(x = Temp, y = lat.fact.gr, label = paste0(Temp)), size = 3, 
+            nudge_y = -0.3, angle = 1, check_overlap = TRUE)+
+  labs(x = "Temp in Deg. C", y = "Latitude", title = "Observed Overwintering Temperature Ranges From 12/18/18-01/10/19 by OW full grove", size = 12)+
+  scale_x_continuous(limits = c(-10, 40), breaks = seq("-16", 40, 2))+
+  #scale_y_continuous(limits = c(0,16), breaks=seq(0,30,5))+
+  theme_bw()+
+  theme(legend.position = "none",
+        panel.grid = element_blank())
+
+kdat_regional.graph
+head(kdat_regional)
+#
+##
+###
+#could also do this, removing November data which would decrease the Tmax as well:
+
+
+
+
+```
+
+### Truncate North and South regional data from prism-- remove November from the time frame so it matches up closer to the data range that kiana's sites are showing. 
+```{r}
+
+# first I need to import the PRISM-only data that has the month by month records of Tmin and Tmax. This is because In the reduced data I used abve, I only had one value for Tmax accross all the months for each site-- and the Tmax was almost always november. So Now I need to romove november, but have th next highest Tmax value to replace it.
+
+#import data:
+Rdat<-read.csv(here::here("PRISM_Regionaldat_Monthly_tempranges.csv"))
+
+Rdat<- Rdat %>%
+  mutate(grovename= as.factor(YearxLocation))%>%
+  mutate(Lat4= Lat4+ 19)%>%
+  mutate(lat.fact.gr=YearxLocation)%>%
+  unite(lat.fact.gr, Lat4, lat.fact.gr, sep="_", remove = FALSE )%>%          #FILTER OUT NOVEMBER MONTHS
+  mutate(lat.fact.gr = as.factor(lat.fact.gr)) %>%
+  filter(Month != "NOV")
+
+
+head(Rdat)
+
+
+
+# format kiana truncated data to have matching columns
+head(kdat.sum.gather)
+bb<- kdat.sum.gather%>%
+  mutate(lat.fact.gr= lat.fact.grove)%>%
+  mutate(Lat4=latit)
+
+# bind to kiana's (truncated 12/18-1/10) to Regional data, truncated for dec&Jan temps only:
+NoNOV_RegK<- bb%>%
+  bind_rows(bb, Rdat) 
+
+View(NoNOV_RegK)
+
+
+#Arrange so the Y-axis in ggplot is sorted by desired latitude:
+NoNOV_RegK<-  NoNOV_RegK %>%
+  mutate(grovename= factor(grovename, levels= c("HarborBlvd", "Tecolote", "HollisterRanch", "SpringCanyon", "BlackLake", "Oceano", "Pismo", "MorroBay", "1980-2010South Coast", "1965South Coast", "1980-2010North Coast", "1965North Coast")) )
+
+
+
+
+
+#graph:
+NoNOV_RegK_graph <-ggplot(data = NoNOV_RegK)+
+  geom_line(aes(x = Temp, y = grovename, color = grovename, size = 8))+
+  geom_point(aes(x = Temp, y = grovename), shape = 16, size = 1.5, color = "black")+
+  geom_text(aes(x = Temp, y = grovename, label = paste0(Temp)), size = 3, 
+            nudge_y = -0.3, angle = 1, check_overlap = TRUE)+
+  labs(x = "Temp in Deg. C", y = "Latitude", title = "Observed Overwintering Temperature Ranges From 12/18/18-01/10/19 by OW cluster AND regional data from Dec and Jan only", size=12)+
+  scale_x_continuous(limits = c(-10, 40), breaks = seq("-16", 40, 2))+
+  #scale_y_continuous(limits = c(0,16), breaks=seq(0,30,5))+
+  theme_bw()+
+  theme(legend.position = "none",
+        panel.grid = element_blank())
+
+NoNOV_RegK_graph
+
+
+View(NoNOV_RegK)
+```
+
+
+
+################################################################################
+################################################################################
+################################################################################
+# # 
+
+# PART 3: CALCULATE Tmin Tmax Tavg accross all days recorded , not just dec18-jan 10:
+
+
+```{r Data Prep- Import and filter etc.}
+#import data
+kiana.rawdat<-read.csv("C:/Users/afish/Desktop/GradSchool_Quarters/Thesis_Stuff/PHYSIO/Making_PhysioZone_Figure_Feb2021/allgr_array_KianaRawdat.csv")
+
+
+#filter so we see reading near the clusters only:
+      kiana.cluster<- filter(kiana.rawdat, array== "Cluster")%>%    #Cluster Data only
+        mutate("grovecode"= grove)
+      
+      head(kiana.cluster) #now only 484 obs, rather than 2,404obs
+
+# Select only the columns you need:
+      kiana.cluster<- select(kiana.cluster, X, array, grovecode, month.day, 
+                             daynum, temp.min, temp.avg, temp.max, temp.std) #21->7 variables now
+
+#Format data columns (make date column, convert some values to factors)
+      kiana.cluster<- mutate(kiana.cluster, grovecode= as.factor(grovecode))
+      head(kiana.cluster)
+
+```
+
+### calculate mean daily temperatuers for Tmin, Tavg, and Tmax accross all days 
+##### remember this is only using data collected at the CLUSTERS. Not the entire grove
+```{r}
+
+# adds new columns to existing dataset:
+
+k.cluster.3<- kiana.cluster %>%
+  group_by(grovecode) %>%
+  mutate(
+    clust.mean.T.min = mean(temp.min, na.rm = TRUE), #na.rm= TRUE removes NAs from calc
+    clust.mean.T.avg = mean(temp.avg, na.rm = TRUE),
+    clust.mean.T.max= mean(temp.max, na.rm= TRUE)
+  )%>%
+  arrange(grovecode)
+
+summary(k.cluster.3)
+#View(k.cluster.3)
+
+#View(k.cluster.trunc)
+
+
+#make summary table of Tmin Tmax by GROVE (but only loggers at clusters used), for full time each were recording
+
+k.cluster.3.summary<- k.cluster.3 %>% 
+  group_by(grovecode) %>%
+  summarise(
+    clust.mean.T.min = mean(temp.min, na.rm = TRUE), #na.rm= TRUE removes NAs from calc
+    clust.mean.T.avg = mean(temp.avg, na.rm = TRUE),
+    clust.mean.T.max= mean(temp.max, na.rm= TRUE)
+  )%>%
+  arrange(grovecode) 
+
+View(k.cluster.3.summary)
+
+```
+
+## Investigate Min Max and Avg if Tmin Tmax and Tavg accross all days, without averaging them out. So actual coldest Tmin experienced, etc. 
+```{r}
+
+# make objects for each site name : AB, HR, BL, HB, MB, OC, P, SC
+AB<- k.cluster.3 %>%
+  filter(grovecode=="AB") 
+
+HR<- k.cluster.3 %>%
+  filter(grovecode=="HR")
+
+BL<- k.cluster.3 %>%
+  filter(grovecode=="BL")
+
+HB<- k.cluster.3 %>%
+  filter(grovecode=="HB")
+
+MB<- k.cluster.3 %>%
+  filter(grovecode=="MB")
+
+OC<- k.cluster.3 %>%
+  filter(grovecode=="OC")
+
+P<- k.cluster.3 %>%
+  filter(grovecode=="P")
+
+SC<- k.cluster.3 %>%
+  filter(grovecode=="SC")
+
+TC <- k.cluster.3 %>%
+  filter(grovecode=="TC") 
+
+#Find lowest Tmin, Tmax,  ever Recorded for each site AT THE ClUSTER:
+
+# AB, HR, BL, HB, MB, OC, P, SC, TC
+                                                     # MinTavg:     MaxTavg:
+summary(AB) #coldest Tmin: 1.8    Highest Tmax: 41.23     9.39      19.95
+summary(HR) #coldest Tmin: 4.2    Highest Tmax: 32.2     10.39      17.56
+summary(BL) #coldest Tmin: -1.34  Highest Tmax: 26.0     5.47      16.17
+summary(HB) #coldest Tmin: 5.04   Highest Tmax: 35.22    9.27       17.38
+summary(MB) #coldest Tmin: 4.207    Highest Tmax: 36.3    7.452     19.208
+summary(OC) #coldest Tmin: -0.33  Highest Tmax: 37.94     6.02     17.417
+summary(P)  #coldest Tmin: 1.656   Highest Tmax: 23.97    6.775    15.799
+summary(SC) #coldest Tmin: 2.943  Highest Tmax:  34.69   7.604     15.892
+summary(TC) #coldest Tmin: 1.1003 Highest Tmax: 22.62   7.628      15.866
+
+# Make summary table from these #s:
+
+#summary table:
+
+Temp.Full.Range.df<- data.frame(
+  site.names =c("AB", "HR", "BL", "HB", "MB", "OC", "P", "SC", "TC"), 
+  LowestTmin = c( 1.8, 4.2, -1.34, 5.04, 4.207, -0.33, 1.656, 2.943, 1.1003),
+  HighestTmax= c(41.23, 32.2, 26.0, 35.22, 36.3, 37.94, 23.97, 34.69, 22.62),
+  MinTavg= c(9.39,10.39, 5.47,  9.27, 7.452 , 6.02, 6.775,7.604,7.628 ),
+  MaxTavg= c(19.95, 17.56, 16.17, 17.38, 19.208, 17.417, 15.799, 15.892, 15.866 )
+)
+
+#KEY: 
+    # minTavg = coldest day aka day with the lowest average temp recorded for the site
+    # maxTavg = hottest day aka day with the HIGHEST  average temp recorded for the site 
+    # Lowest Tmin = coldest min temp recorded AT THE CLUSTER  aka the coldest point recorded for the site?
+    # Highest Tmax = hottest min temp recorded aka the hottest point recorded for the site?
+
+
+#### AWESOME IT WORKED!!!
+```
+
+######## In the above code chunk, I made  a data table that shows the coldest daily temperature recorded at each site, the warmest daily temperature recorded at each site, the lowest minimum temperature, using only loggets @ the cluster:
+```{r}
+Temp.Full.Range.df
+```

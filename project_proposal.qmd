@@ -1,0 +1,30 @@
+---
+title: "STAT 414 Project Proposal"
+author: "Kyle Nessen, Justin Mai, Aiden Kelly, Arneh Begi"
+date: "2024-10-14"
+format: pdf
+editor: visual
+bibliography: references.bib
+---
+
+## Research Question
+
+Every fall, monarch butterflies undergo an annual mass migration from their summer breeding grounds across western North America to overwintering groves along the Pacific Coast. Scientists hypothesize that the butterflies seek out these groves because they provide ideal weather conditions, including mild temperatures, high humidity, and moderate light. They predict that monarchs will select habitats that meet all of their requirements and will not be found in areas where these conditions are not met, both at the landscape and site levels.
+
+## Data Source
+
+Our dataset comes from research conducted by former master's student Kiana Saniee and Kyle's advisor, Dr. Francis Villablanca [@saniee2022]. They directly investigated the "microclimate hypothesis" by taking temperature, humidity, and light measurements at multiple levels. Within a grove, they placed a weather station (`array`) at a known aggregation site, where monarch butterflies are thought to be selecting favorable weather conditions. From that aggregation site, they placed four additional arrays in a repeated manner to capture variation within the grove (see @fig-samplingDesign). This arrangement of weather arrays was repeated across nine groves in San Luis Obispo, Santa Barbara, and Ventura County (see @fig-siteOverview). Climate measurements were taken every 5 minutes, and derivative summary measures were generated for each day (e.g., minimum, maximum, and average temperature).
+
+![Sampling design relative to the aggregation’s location in the groves. The first sample location was placed in the location of an aggregation (Aggregation). Two more sample locations were placed on the SE and NW edges of each grove relative to the aggregation’s location to capture morning light and prevailing wind (SE edge and NW edge, respectively). Two interior sample locations were placed halfway between the aggregation’s location and the grove’s edge in the NE and SW directions (NE interior and SW interior, respectively).](images/clipboard-521945598.png){#fig-samplingDesign fig-align="center"}
+
+![Nine groves sampled along the California coast in Ventura, Santa Barbara, and San Luis Obispo counties that met study design criteria (see text). The groves from south to north are: Arundell Barranca (V), Harbor Blvd (V), Tecolote Canyon (SB), Hollister Ranch (SB), Spring Canyon Vandenberg Air Force Base (SB), Black Lake (SLO), Oceano Campground (SLO), Pismo Beach State Park (SLO), and Morro Bay Golf Course (SLO).](images/clipboard-4044369441.png){#fig-siteOverview}
+
+## Levels
+
+This study has three levels. Level 1 is the groves, which are thought to be independent of each other. Level 2 is array locations within a grove, and level 3 is climate observations at each array (see @fig-levels). 
+This study has three levels. Level 1 is the groves, which are thought to be independent of each other. Level 2 is array locations within a grove, and level 3 is climate observations at each array (see @fig-levels). 
+
+![Simplified levels of observation for our dataset.](levels.png){#fig-levels}
+
+
+## References

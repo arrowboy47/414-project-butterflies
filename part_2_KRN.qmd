@@ -1,0 +1,35 @@
+---
+title: "Part 2 Exploration"
+author: "Kyle Nessen"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+df <- read_csv('allgr_array_KianaRawdat.csv')
+glimpse(df)
+```
+
+```{r}
+library(lme4)
+model1 <- lmer(temp.avg ~ array + (1 | grove), data = df)
+summary(model1)
+```
+
+```{r}
+library(performance)
+check_model(model1)
+```
+
+```{r}
+model2 <- lmer(temp.avg ~ grove + (1 | array), data = df)
+summary(model2)
+check_model(model2)
+```
+
+

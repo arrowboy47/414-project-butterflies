@@ -48,6 +48,56 @@ ggplot(grove_counts, aes(x = grove, y = n)) +
 
 
 ```{r}
+#Reponse variables by Grove
+
+# Boxplot for Average Temperature by Grove
+ggplot(df, aes(x = grove, y = temp.avg, fill = grove)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Average Temperature by Grove",
+       x = "Grove", y = "Average Temperature (°C)") +
+  theme_minimal()
+
+# Boxplot for Minimum Temperature by Grove
+ggplot(df, aes(x = grove, y = temp.min, fill = grove)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Minimum Temperature by Grove",
+       x = "Grove", y = "Minimum Temperature (°C)") +
+  theme_minimal()
+
+# Boxplot for Maximum Temperature by Grove
+ggplot(df, aes(x = grove, y = temp.max, fill = grove)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Maximum Temperature by Grove",
+       x = "Grove", y = "Maximum Temperature (°C)") +
+  theme_minimal()
+
+# Boxplot for Average Humidity by Grove
+ggplot(df, aes(x = grove, y = hum.avg, fill = grove)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Average Humidity by Grove",
+       x = "Grove", y = "Average Humidity (%)") +
+  theme_minimal()
+
+# Boxplot for Average Light by Grove
+ggplot(df, aes(x = grove, y = light.avg, fill = grove)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Average Light by Grove",
+       x = "Grove", y = "Average Light (Lux)") +
+  theme_minimal()
+
+# Boxplot for Light Variability (Std Dev) by Grove
+ggplot(df, aes(x = grove, y = light.std, fill = grove)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Light Standard Deviation by Grove",
+       x = "Grove", y = "Light Standard Deviation") +
+  theme_minimal()
+```
+
+
+
+
+
+```{r}
 
 model1 <- lmer(temp.avg ~ array + (1 | grove), data = df)
 summary(model1)
@@ -61,4 +111,3 @@ model2 <- lmer(temp.avg ~ grove + (1 | array), data = df)
 summary(model2)
 check_model(model2)
 ```
-

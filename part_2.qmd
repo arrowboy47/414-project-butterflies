@@ -1,7 +1,8 @@
 ---
-title: "Part 2 Exploration"
-author: "Kyle Nessen"
-format: html
+title: "STAT 414 - Part 2 Update"
+author: "Kyle Nessen, Justin Mai, Aiden Kelly, Arneh Begi"
+date: "2024-10-28"
+format: docx
 editor: visual
 ---
 
@@ -10,31 +11,29 @@ library(tidyverse)
 library(lme4)
 library(performance)
 ```
+
 ## Introduction
 
-Every fall, monarch butterflies migrate from the western United States to coastal California in search of forested areas where they cluster in large numbers. It is hypothesized that the butterflies seek these habitats or groves because they offer a particular microclimate regarding temperature, humidity, and light. Within each grove, butterflies often cluster at the same tree (and even branch), year after year, spurring scientists to hypothesize that these areas are selected for their microclimatic characteristics over other areas within the same grove. Saniee and Villablanca (2022) tested this hypothesis directly by installing weather station 'arrays' at the butterfly clustering sites ('cluster') and four orthogonal positions from the butterflies (NW, NE, SW, SE). They repeated these weather station arrays at eight overwintering groves along an N-S gradient along the California coast. 
+Every fall, monarch butterflies migrate from the western United States to coastal California in search of forested areas where they cluster in large numbers. It is hypothesized that the butterflies seek these habitats or groves because they offer a particular microclimate regarding temperature, humidity, and light. Within each grove, butterflies often cluster at the same tree (and even branch), year after year, spurring scientists to hypothesize that these areas are selected for their microclimatic characteristics over other areas within the same grove. Saniee and Villablanca (2022) tested this hypothesis directly by installing weather station 'arrays' at the butterfly clustering sites ('cluster') and four orthogonal positions from the butterflies (NW, NE, SW, SE). They repeated these weather station arrays at eight overwintering groves along an N-S gradient along the California coast.
 
 Our research question investigates whether climatic conditions are significantly different at the cluster site compared to the four controls (NW, NE, SW, SE) and whether they are consistent across groves at cluster sites.
 
 ```{r}
-df <- read_csv('allgr_array_KianaRawdat.csv')
+df <- suppressMessages(read_csv('allgr_array_KianaRawdat.csv'))
 head(df)
 ```
 
-## Weight Observations Based on Time of Year
+## Weight observations based on time of season
 
-The monarch overwintering season occurs from the beginning of October through the end of February. Weather can be unpredictable at the beginning and end of the season (fall and spring), and butterflies either arrive at groves or leave to begin breeding; thus, they generally occur in low numbers. The highest counts of butterflies occur around Thanksgiving and Christmas, or approximately in the middle of the season. Scientists are usually most "concerned" about storms during this time. 
+The monarch overwintering season occurs from the beginning of October through the end of February. Weather can be unpredictable at the beginning and end of the season (fall and spring), and butterflies either arrive at groves or leave to begin breeding; thus, they generally occur in low numbers. The highest counts of butterflies occur around Thanksgiving and Christmas, or approximately in the middle of the season. Scientists are usually most "concerned" about storms during this time.
 
-One idea to account for this is to weigh observations based on how far away they are from the middle of the season. We could derive day of the season (`seasonDay`) from the date column (10/1 = 1, 10/2 = 2), then grand mean center our `seasonDay` variable. If we take the absolute value of `seasonDay`, days near the middle of the season would be small, and days toward the beginning or end would be large. We could weigh by dividing one by `seasonDay`. 
+One idea to account for this is to weigh observations based on how far away they are from the middle of the season. We could derive day of the season (`seasonDay`) from the date column (10/1 = 1, 10/2 = 2), then grand mean center our `seasonDay` variable. If we take the absolute value of `seasonDay`, days near the middle of the season would be small, and days toward the beginning or end would be large. We could weigh by dividing one by `seasonDay`.
 
-We are presenting this idea to see if it is worth pursuing or if it is a route we should take with caution. 
+We are presenting this idea to see if it is worth pursuing or if it is a route we should take with caution.
 
+## Unequal samples across groves
 
-## Grove Population
 Since not all groves have the same number of observations throughout the overwintering season, should we restrict our analysis to dates where the groves have data? A benefit is that it may provide a better comparison of conditions across sites, but it could also reduce our sample size and miss important data in grove specific conditions on unmonitored dates.
-
-## Scratch code
-
 
 ```{r}
 
@@ -49,6 +48,9 @@ ggplot(grove_counts, aes(x = grove, y = n)) +
 
 ```
 
+## Exploratory plots of response variables
+
+Below are box plots of the response variables we plan to test by grove.
 
 ```{r}
 #Reponse variables by Grove
@@ -96,21 +98,23 @@ ggplot(df, aes(x = grove, y = light.std, fill = grove)) +
   theme_minimal()
 ```
 
+## Preliminary models
 
+Below are a few preliminary models to test our questions. These likely will change in the final report, but we provide them here to give a sense of how we plan to approach the investigation.
 
-
+### Arrays as fixed effect
 
 ```{r}
 
 model1 <- lmer(temp.avg ~ array + (1 | grove), data = df)
-summary(model1)
+summary(model1, corr = FALSE)
 check_model(model1)
 ```
 
-
+### Grove as fixed effect
 
 ```{r}
 model2 <- lmer(temp.avg ~ grove + (1 | array), data = df)
-summary(model2)
+summary(model2, corr = FALSE)
 check_model(model2)
 ```

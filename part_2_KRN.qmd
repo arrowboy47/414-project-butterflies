@@ -30,6 +30,9 @@ One idea to account for this is to weigh observations based on how far away they
 We are presenting this idea to see if it is worth pursuing or if it is a route we should take with caution. 
 
 
+## Grove Population
+Since not all groves have the same number of observations throughout the overwintering season, should we restrict our analysis to dates where the groves have data? A benefit is that it may provide a better comparison of conditions across sites, but it could also reduce our sample size and miss important data in grove specific conditions on unmonitored dates.
+
 ## Scratch code
 
 

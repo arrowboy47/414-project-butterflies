@@ -5,31 +5,60 @@ format: html
 editor: visual
 ---
 
-```{r}
+```{r include=FALSE}
 library(tidyverse)
+library(lme4)
+library(performance)
 ```
+## Introduction
 
+Every fall, monarch butterflies migrate from the western United States to coastal California in search of forested areas where they cluster in large numbers. It is hypothesized that the butterflies seek these habitats or groves because they offer a particular microclimate regarding temperature, humidity, and light. Within each grove, butterflies often cluster at the same tree (and even branch), year after year, spurring scientists to hypothesize that these areas are selected for their microclimatic characteristics over other areas within the same grove. Saniee and Villablanca (2022) tested this hypothesis directly by installing weather station 'arrays' at the butterfly clustering sites ('cluster') and four orthogonal positions from the butterflies (NW, NE, SW, SE). They repeated these weather station arrays at eight overwintering groves along an N-S gradient along the California coast. 
+
+Our research question investigates whether climatic conditions are significantly different at the cluster site compared to the four controls (NW, NE, SW, SE) and whether they are consistent across groves at cluster sites.
 
 ```{r}
 df <- read_csv('allgr_array_KianaRawdat.csv')
-glimpse(df)
+head(df)
 ```
 
+## Weight Observations Based on Time of Year
+
+The monarch overwintering season occurs from the beginning of October through the end of February. Weather can be unpredictable at the beginning and end of the season (fall and spring), and butterflies either arrive at groves or leave to begin breeding; thus, they generally occur in low numbers. The highest counts of butterflies occur around Thanksgiving and Christmas, or approximately in the middle of the season. Scientists are usually most "concerned" about storms during this time. 
+
+One idea to account for this is to weigh observations based on how far away they are from the middle of the season. We could derive day of the season (`seasonDay`) from the date column (10/1 = 1, 10/2 = 2), then grand mean center our `seasonDay` variable. If we take the absolute value of `seasonDay`, days near the middle of the season would be small, and days toward the beginning or end would be large. We could weigh by dividing one by `seasonDay`. 
+
+We are presenting this idea to see if it is worth pursuing or if it is a route we should take with caution. 
+
+
+## Scratch code
+
+
 ```{r}
-library(lme4)
+
+grove_counts <- df %>%
+  count(grove)
+
+# Plot the counts as a bar chart
+ggplot(grove_counts, aes(x = grove, y = n)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of Rows per Grove Type", x = "Grove Type", y = "Row Count") +
+  theme_minimal()
+
+```
+
+
+```{r}
+
 model1 <- lmer(temp.avg ~ array + (1 | grove), data = df)
 summary(model1)
-```
-
-```{r}
-library(performance)
 check_model(model1)
 ```
+
+
 
 ```{r}
 model2 <- lmer(temp.avg ~ grove + (1 | array), data = df)
 summary(model2)
 check_model(model2)
 ```
-
 

@@ -1,0 +1,91 @@
+---
+title: "STAT 414 - todo for part 3 submittion"
+author: "Kyle Nessen, Justin Mai, Aiden Kelly, Arneh Begi"
+date: "2024-10-28"
+format: docx
+editor: visual
+---
+### stuff that should be included
+
+```{r}
+# Load necessary packages
+library(lme4)
+library(ggplot2)
+library(dplyr)
+
+# Assuming your data frame is `data` and variables are appropriately named and centered
+# Example placeholders: 
+# response: the dependent variable
+# level2: the Level-2 grouping variable (e.g., school)
+# level1_var1, level1_var2: Level-1 predictors
+# level2_var1: Level-2 predictor
+
+# Step 1: Graph variability in the response across Level-2 units
+ggplot(data, aes(x = factor(level2), y = response)) +
+  geom_boxplot() +
+  labs(title = "Variability in Response Across Level-2 Units", x = "Level-2 Units", y = "Response")
+
+# Fit an ANOVA model to check for significant variability
+anova_model <- lm(response ~ factor(level2), data = data)
+summary(anova_model)
+
+# Step 2: Fit the null model (random intercepts only)
+null_model <- lmer(response ~ 1 + (1 | level2), data = data, REML = TRUE)
+summary(null_model)
+
+# Extract ICC
+icc <- as.numeric(VarCorr(null_model)$level2[1]) / 
+       (as.numeric(VarCorr(null_model)$level2[1]) + attr(VarCorr(null_model), "sc")^2)
+cat("Intraclass Correlation Coefficient (ICC):", icc, "\n")
+
+# Likelihood, deviance, AIC
+cat("Likelihood:", logLik(null_model), "\n")
+cat("Deviance:", deviance(null_model), "\n")
+cat("AIC:", AIC(null_model), "\n")
+
+# Step 3: Add 1-3 Level 1 variables
+model_level1 <- lmer(response ~ level1_var1 + level1_var2 + level1_var3 + (1 | level2), data = data, REML = FALSE)
+anova(null_model, model_level1) # Likelihood ratio test (chi-sq and df are output here)
+cat("AIC for Level-1 Model:", AIC(model_level1), "\n")
+
+# Proportion of variation explained at Level-1
+var_null <- as.numeric(VarCorr(null_model)$level2[1]) + attr(VarCorr(null_model), "sc")^2
+var_level1 <- as.numeric(VarCorr(model_level1)$level2[1]) + attr(VarCorr(model_level1), "sc")^2
+prop_var_explained <- (var_null - var_level1) / var_null
+cat("Proportion of Level-1 Variation Explained:", prop_var_explained, "\n")
+
+# Step 4: Add 1-3 Level 2 variables
+model_level2 <- lmer(response ~ level1_var1 + level1_var2 + level1_var3 + level2_var1 + level2_var2 + (1 | level2), data = data, REML = FALSE)
+anova(model_level1, model_level2) # Likelihood ratio test
+cat("AIC for Level-2 Model:", AIC(model_level2), "\n")
+
+# Proportion of variation explained at Level-2
+var_level2 <- as.numeric(VarCorr(model_level2)$level2[1]) + attr(VarCorr(model_level2), "sc")^2
+prop_var_explained_level2 <- (var_level1 - var_level2) / var_level1
+cat("Proportion of Level-2 Variation Explained:", prop_var_explained_level2, "\n")
+
+# Step 5: Add random slopes for one Level-1 variable
+random_slopes_model <- lmer(response ~ level1_var1 + level1_var2 + level1_var3 + level2_var1 + level2_var2 + 
+                             (1 + level1_var1 | level2), data = data, REML = TRUE)
+summary(random_slopes_model)
+
+# Plot variability in random slopes
+random_effects <- ranef(random_slopes_model)$level2
+random_effects_df <- as.data.frame(random_effects)
+ggplot(random_effects_df, aes(x = grp, y = level1_var1)) +
+  geom_point() +
+  labs(title = "Random Slopes for Level-1 Variable", x = "Level-2 Unit", y = "Random Slope")
+
+# Step 6: Add a cross-level interaction
+cross_level_model <- lmer(response ~ level1_var1 * level2_var1 + level1_var2 + level1_var3 + 
+                          (1 + level1_var1 | level2), data = data, REML = TRUE)
+summary(cross_level_model)
+
+# Compare with the random slopes model
+anova(random_slopes_model, cross_level_model)
+cat("AIC for Cross-Level Interaction Model:", AIC(cross_level_model), "\n")
+
+# Proportion of slope variation explained
+var_slopes <- attr(VarCorr(random_slopes_model)$level2, "correlation")^2
+cat("Proportion of Slope Variation Explained by Interaction:", var_slopes, "\n")
+```

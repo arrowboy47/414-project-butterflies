@@ -1,0 +1,107 @@
+---
+title: "part3"
+author: "aiden Kelly"
+date: "2024-11-18"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lme4)
+library(performance)
+```
+
+              
+```{r}
+df <- suppressMessages(read_csv('allgr_array_KianaRawdat.csv'))
+head(df)
+```
+
+## Assumptions and thoughts
+
+- non independence of observations within groves (between arrays)
+- vars: temp.avg, temp.min, temp.max, hum.avg, light.avg, light.std, cluster controls
+- 
+```{r}
+df <- df |> 
+  mutate(
+    # Parse the month and day components
+    month = as.integer(substr(month.day, 1, 2)),
+    day = as.integer(substr(month.day, 4, 5)),
+    
+    # Assign year based on month
+    year = ifelse(month >= 10, 2022, 2023),
+    
+    # Create a Date column
+    Date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"),
+    
+    # Calculate seasonDay and seasonWeight
+    seasonDay = as.numeric(difftime(Date, as.Date("2022-11-15"), units = "days")),
+    seasonWeight = 1 / abs(seasonDay)
+  )
+
+colSums(is.na(df)) # lots of cols with missing vals so log like wont worksince lmer will drop nas
+```  
+
+```{r}
+model <- lmer(temp.avg ~ array + (1 | grove),
+              data = df, weights = seasonWeight)
+
+summary(model) # each array is signif at 0.05 level
+
+model1 <- lmer(temp.avg ~ array + light.avg +  (1 | grove), data = df, weights = seasonWeight)
+
+summary(model1) 
+
+AIC(model, model1)
+
+model2 <- lmer(temp.avg ~ array + light.avg + hum.avg + (1 | grove), data = df, weights = seasonWeight)
+
+summary(model2) 
+AIC(model1, model2) # BIG drop in AIC, so humidity is import in predicting temp.avg even though it is not signif
+
+
+model3 <- lmer(temp.avg ~ array + light.avg + hum.avg + temp.min + (1 | grove), data = df, weights = seasonWeight)
+AIC(model2, model3) # drop in AIC, so temp.min is not important in predicting temp.avg
+
+model4 <- lmer(temp.avg ~ array + light.avg + hum.avg + temp.min + temp.max + (1 | grove), data = df, weights = seasonWeight)
+AIC(model3, model4) # drop in AIC, so temp.max is not important in predicting temp.avg
+
+model4a <- lmer(temp.avg ~ array + hum.avg + temp.min + temp.max + (1 | grove), data = df, weights = seasonWeight)
+AIC(model4, model4a) # drop in AIC, not that large compared to the others so might be better for simpilicity
+summary(model4)l
+
+model_final <- lmer(temp.avg ~ array + light.avg + (1 | grove), data = df, weights = seasonWeight)
+summary(model_final) 
+# min and max temp explain a lot but it seems kind of redundant to have both in the model since an avg temp is a combo of the two. especially when looking at anova table it is explaiing A LOT of the variance, potentially masking other prds and hiding the effect of array if it exists
+
+# model2a <- lmer(temp.avg ~ array  + hum.avg + (1 | grove), data = df, weights = seasonWeight)
+# AIC(model2, model2a) # drop in AIC, so light.avg is not important in predicting temp.avg
+```
+
+The array coefficients are not significant, meaning there's no strong evidence of temperature differences between arrays once other predictors (e.g., humidity, light, min/max temp) are included.
+However, this doesn't rule out differences entirely—it might be that other predictors explain most of the variability, leaving little independent variation for arrays to explain.
+
+especially since when we looks at a model of just array, each one is significant, but when we add other predictors, they are not. maybe  looking at how much variance is explained by each predictor would be useful
+
+```{r}
+anova(model4a)
+anova(model2)
+library(car)
+vif(model4) # no multicollinearity, so signif of each r likely valid
+
+
+
+```
+
+```{r}
+plot(resid(model4a) ~ fitted(model4a))
+qqnorm(resid(model4a))
+qqline(resid(model4a))
+
+VarCorr(model4a)
+VarCorr(model_final)
+
+```
+
+

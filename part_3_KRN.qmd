@@ -1,0 +1,79 @@
+---
+title: "STAT 414 - todo for part 3 submittion"
+author: "Kyle Nessen, Justin Mai, Aiden Kelly, Arneh Begi"
+date: "2024-10-28"
+format: docx
+editor: visual
+---
+
+```{r}
+# Load necessary packages
+library(lme4)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+#Seeing grove as a random effect
+df <- suppressMessages(read_csv('allgr_array_KianaRawdat.csv'))
+
+# Update 'butterfly_present' column in R
+df$butterfly_present <- ifelse(df$array == "Cluster", 1, 0)
+
+head(df)
+```
+
+```{r}
+
+seasonal_summary <- df %>%
+  group_by(grove, array, butterfly_present) %>%
+  summarise(
+    # Temperature metrics
+    temp_mean = mean(temp.avg, na.rm = TRUE),
+    temp_range = max(temp.max, na.rm = TRUE) - min(temp.min, na.rm = TRUE),
+    temp_std = mean(temp.std, na.rm = TRUE),
+    diurnal_range = mean(temp.max - temp.min, na.rm = TRUE),
+    isothermality = (mean(temp.max - temp.min, na.rm = TRUE) / 
+                    (max(temp.max, na.rm = TRUE) - min(temp.min, na.rm = TRUE))) * 100,
+    
+    # Temperature stability metrics
+    temp_stability = 1 / mean(temp.std, na.rm = TRUE),  # Higher values = more stable temperatures
+    temp_extremity = abs(mean(temp.avg, na.rm = TRUE) - median(temp.avg, na.rm = TRUE)), # Distance from typical conditions
+    
+    # Humidity metrics
+    hum_mean = mean(hum.avg, na.rm = TRUE),
+    hum_range = max(hum.max, na.rm = TRUE) - min(hum.min, na.rm = TRUE),
+    hum_std = mean(hum.std, na.rm = TRUE),
+    
+    # Dew point metrics
+    dewpt_mean = mean(dew.pt.avg, na.rm = TRUE),
+    dewpt_range = max(dp.max, na.rm = TRUE) - min(dp.min, na.rm = TRUE),
+    
+    # Light metrics
+    light_mean = mean(light.avg, na.rm = TRUE),
+    light_range = mean(light.max - light.min, na.rm = TRUE),
+    light_std = mean(light.std, na.rm = TRUE),
+    
+    # Vapor Pressure Deficit (VPD) approximation
+    # Using Magnus formula for saturated vapor pressure
+    sat_vp = 0.61078 * exp((17.27 * temp_mean) / (temp_mean + 237.3)),
+    actual_vp = sat_vp * (hum_mean / 100),
+    vpd = sat_vp - actual_vp,
+    
+    # Count of extreme days
+    cold_days = sum(temp.min < 0, na.rm = TRUE),  # Days below freezing
+    humid_days = sum(hum.max > 90, na.rm = TRUE), # Very humid days
+    
+    # Sample size
+    n_observations = n()
+  ) %>%
+  ungroup()
+
+# Check the results
+glimpse(seasonal_summary)
+```
+```{r}
+logistic_model <- glmer(butterfly_present ~ temp_mean + hum_mean + cold_days + sat_vp + humid_days + isothermality +  temp_range + (1|grove), data = seasonal_summary, family = binomial)
+summary(logistic_model)
+```
+
+

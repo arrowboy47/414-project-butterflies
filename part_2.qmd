@@ -21,6 +21,11 @@ Our research question investigates whether climatic conditions are significantly
 ```{r}
 df <- suppressMessages(read_csv('allgr_array_KianaRawdat.csv'))
 head(df)
+
+# showing only info at one grove site
+df %>%
+  filter(grove == "OC") 
+
 ```
 
 ## Weight observations based on time of season
@@ -105,10 +110,9 @@ Below are a few preliminary models to test our questions. These likely will chan
 ### Arrays as fixed effect
 
 ```{r}
-
 model1 <- lmer(temp.avg ~ array + (1 | grove), data = df)
 summary(model1, corr = FALSE)
-check_model(model1)
+#check_model(model1)
 ```
 
 ### Grove as fixed effect
@@ -117,4 +121,47 @@ check_model(model1)
 model2 <- lmer(temp.avg ~ grove + (1 | array), data = df)
 summary(model2, corr = FALSE)
 check_model(model2)
+```
+
+
+## Assumptions and thoughts
+
+- non independence of observations within groves (between arrays)
+- vars: temp.avg, temp.min, temp.max, hum.avg, light.avg, light.std, cluster controls
+- 
+```{r}
+df <- df |> 
+  mutate(
+    # Parse the month and day components
+    month = as.integer(substr(month.day, 1, 2)),
+    day = as.integer(substr(month.day, 4, 5)),
+    
+    # Assign year based on month
+    year = ifelse(month >= 10, 2022, 2023),
+    
+    # Create a Date column
+    Date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"),
+    
+    # Calculate seasonDay and seasonWeight
+    seasonDay = as.numeric(difftime(Date, as.Date("2022-11-15"), units = "days")),
+    seasonWeight = 1 / abs(seasonDay)
+  )
+
+model <- lmer(temp.avg ~ array + (1 | grove),
+              data = df, weights = seasonWeight)
+
+summary(model) # each array is signif
+
+model1 <- lmer(temp.avg ~ array + light.avg + hum.avg + temp.min + temp.max + (1 | grove), data = df)
+summary(model1)
+```
+
+```{r}
+plot(resid(model) ~ fitted(model))
+qqnorm(resid(model))
+qqline(resid(model))
+
+VarCorr(model)
+
+
 ```

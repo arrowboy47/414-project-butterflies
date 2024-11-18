@@ -21,10 +21,8 @@ Our dataset comes from research conducted by former master's student Kiana Sanie
 
 ## Levels
 
-This study has three levels. Level 1 is the groves, which are thought to be independent of each other. Level 2 is array locations within a grove, and level 3 is climate observations at each array (see @fig-levels). 
-This study has three levels. Level 1 is the groves, which are thought to be independent of each other. Level 2 is array locations within a grove, and level 3 is climate observations at each array (see @fig-levels). 
+This study has three levels. Level 1 is the groves, which are thought to be independent of each other. Level 2 is array locations within a grove, and level 3 is climate observations at each array (see @fig-levels). This study has three levels. Level 1 is the groves, which are thought to be independent of each other. Level 2 is array locations within a grove, and level 3 is climate observations at each array (see @fig-levels).
 
 ![Simplified levels of observation for our dataset.](levels.png){#fig-levels}
-
 
 ## References

@@ -1,0 +1,185 @@
+---
+title: "STAT 414 - Class Project"
+subtitle: "Part 3"
+author: "Kyle Nessen, Justin Mai, Aiden Kelly, Arneh Begi"
+date: "2024-11-18"
+format: docx
+editor: visual
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lme4)
+library(performance)
+```
+
+## Introduction
+
+Our project focuses on the habitat characteristics of overwintering monarch butterflies. Specifically, we are investigating whether there are distinct patterns within a grove related to temperature, humidity, and light that monarch butterflies are selecting. Due to the structure of our data, we cannot directly predict monarch presence based on these climatic conditions. Instead, we are reversing the question and asking if monarch presence is a significant predictor of the following measures:
+
+-   Average temperature (C)
+-   Minimum temperature (C)
+-   Maximum temperature (C)
+-   Average humidity (%)
+-   Average light (lux)
+-   Standard Deviation of light (lux)
+
+We are analyzing daily summaries from weather stations positioned within eight monarch groves. Each grove is geographically distinct from each other, and within each grove are five weather stations, or "arrays." One array is placed at the location of overwintering butterflies ("Cluster") and four other arrays are positioned both within the grove (SW, NE) and outside the canopy (SE, NW). We created a new variable, `butterfly_present`, where Cluster arrays = 1, and all others = 0, which we use to assess if monarchs help predict climatic variables. We also account for time (`seasonDay`) by counting days since the beginning of the monitoring period (December 1st, 2018). We include `seasonDay` as both a fixed and random effect to account for both the overall seasonal temperature pattern and allow each grove to have its own unique seasonal trajectory, since groves may warm or cool at different rates due to their distinct physical characteristics (e.g., elevation, canopy cover, proximity to coast). Finally, we treat groves as random effects, as they are a sample from a larger pool of other potential groves that monarchs can overwinter at.
+
+### Data
+
+```{r data-processing, message=FALSE, warning=FALSE}
+df <- read_csv('allgr_array_KianaRawdat.csv')
+df <- df |> 
+  mutate(
+    # Parse the month and day components
+    month = as.integer(substr(month.day, 1, 2)),
+    day = as.integer(substr(month.day, 4, 5)),
+    
+    # Assign year based on month
+    year = ifelse(month >= 10, 2022, 2023),
+    
+    # Create a Date column
+    Date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"),
+    
+    # Calculate seasonDay and seasonWeight
+    seasonDay = as.numeric(difftime(Date, as.Date("2022-12-01"), units = "days"))
+  )
+
+colSums(is.na(df)) # lots of cols with missing vals so log like wont worksince lmer will drop nas
+
+df$array <- as.factor(df$array)
+df$array <- relevel(df$array, ref = "NE")
+df$butterfly_present <- ifelse(df$array == "Cluster", 1, 0)
+
+# Center variables
+df$temp.avg_centered <- df$temp.avg - mean(df$temp.avg, na.rm = TRUE)
+df$temp.min_centered <- df$temp.min - mean(df$temp.min, na.rm = TRUE)
+df$temp.max_centered <- df$temp.max - mean(df$temp.max, na.rm = TRUE)
+df$hum.avg_centered <- df$hum.avg - mean(df$hum.avg, na.rm = TRUE)
+df$light.avg_centered <- df$light.avg - mean(df$light.avg, na.rm = TRUE)
+df$light.std_centered <- df$light.std - mean(df$light.std, na.rm = TRUE)
+```
+
+## Temperature
+
+### Average Temperature
+
+```{r avg-temp, message=FALSE, warning=FALSE}
+temp.avg.model1 <- lmer(temp.avg_centered ~ seasonDay + (1 + seasonDay | grove), data=df)
+temp.avg.model2 <- lmer(temp.avg_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data=df)
+anova(temp.avg.model1, temp.avg.model2)
+performance::icc(temp.avg.model2)
+
+ggplot(df, aes(x=factor(butterfly_present), y=temp.avg)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Average Temperature (°C)", 
+       title="Average Temperature by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+
+The intraclass correlation coefficient (ICC) of 0.248 indicates that about 25% of the variation in average temperature (after accounting for seasonal effects) can be attributed to differences between groves. When we added butterfly presence to the model, a likelihood ratio test showed no significant improvement in model fit (p = 0.2566), suggesting that locations selected by monarchs do not differ significantly in average temperature from other monitored locations within the groves.
+
+### Maximum Temperature
+
+```{r max-temp, message=FALSE, warning=FALSE}
+temp.max.model1 <- lmer(temp.max_centered ~ seasonDay + (1 + seasonDay | grove), data=df)
+temp.max.model2 <- lmer(temp.max_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data=df)
+anova(temp.max.model1, temp.max.model2)
+performance::icc(temp.max.model2)
+
+ggplot(df, aes(x=factor(butterfly_present), y=temp.max)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Maximum Temperature (°C)", 
+       title="Maximum Temperature by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+
+The ICC of 0.507 indicates that about 51% of the variation in maximum temperature (after accounting for seasonal effects) can be attributed to differences between groves. When we added butterfly presence to the model, a likelihood ratio test showed no significant improvement in model fit (p = 0.1767), suggesting that locations selected by monarchs do not differ significantly in maximum temperature from other monitored locations within the groves.
+
+### Minimum Temperature
+
+```{r min-temp, message=FALSE, warning=FALSE}
+temp.min.model1 <- lmer(temp.min_centered ~ seasonDay + (1 + seasonDay | grove), data=df)
+temp.min.model2 <- lmer(temp.min_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data=df)
+anova(temp.min.model1, temp.min.model2)
+performance::icc(temp.min.model2)
+
+ggplot(df, aes(x=factor(butterfly_present), y=temp.min)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Minimum Temperature (°C)", 
+       title="Minimum Temperature by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+
+The ICC of 0.452 indicates that about 45% of the variation in minimum temperature (after accounting for seasonal effects) can be attributed to differences between groves. When we added butterfly presence to the model, a likelihood ratio test showed no significant improvement in model fit (p = 0.4518), suggesting that locations selected by monarchs do not differ significantly in minimum temperature from other monitored locations within the groves.
+
+## Humidity
+
+```{r humidity, message=FALSE, warning=FALSE}
+hum.avg.model1 <- lmer(hum.avg_centered ~ seasonDay + (1 + seasonDay | grove), data=df)
+hum.avg.model2 <- lmer(hum.avg_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data=df)
+anova(hum.avg.model1, hum.avg.model2)
+performance::icc(hum.avg.model2)
+
+ggplot(df, aes(x=factor(butterfly_present), y=hum.avg)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Average Humidity (%)", 
+       title="Average Humidity by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+
+The ICC of 0.110 indicates that about 11% of the variation in average humidity (after accounting for seasonal effects) can be attributed to differences between groves. When we added butterfly presence to the model, a likelihood ratio test showed no significant improvement in model fit (p = 0.3884), suggesting that locations selected by monarchs do not differ significantly in average temperature from other monitored locations within the groves.
+
+## Light
+
+### Average light
+
+```{r avg-light, message=FALSE, warning=FALSE}
+# Just random intercepts, no random slopes
+light.avg.model1 <- lmer(light.avg_centered ~ seasonDay + (1 | grove), data=df)
+light.avg.model2 <- lmer(light.avg_centered ~ seasonDay + butterfly_present + (1 | grove), data=df)
+anova(light.avg.model1, light.avg.model2)
+performance::icc(light.avg.model2)
+
+ggplot(df, aes(x=factor(butterfly_present), y=light.avg)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Average Light (lux)", 
+       title="Average Light by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+
+The ICC of 0.135 indicates that about 13.5% of the variation in average light can be attributed to differences between groves. When we added butterfly presence to the model, a likelihood ratio test showed a significant improvement in model fit (p = 0.00899), suggesting that locations selected by monarchs differ significantly in average light levels from other monitored locations within the groves. Note that due to model convergence issues, we had to simplify the random effects structure to only include random intercepts for groves.
+
+### Standard deviation of light
+
+```{r light-std, message=FALSE, warning=FALSE}
+light.std.model1 <- lmer(light.std_centered ~ seasonDay + (1 | grove), data=df)
+light.std.model2 <- lmer(light.std_centered ~ seasonDay + butterfly_present + (1 | grove), data=df)
+anova(light.std.model1, light.std.model2)
+performance::icc(light.std.model2)
+
+ggplot(df, aes(x=factor(butterfly_present), y=light.std)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Light Standard Deviation (lux)", 
+       title="Light Variability by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+
+The ICC of 0.135 indicates that about 13.5% of the variation in light variability can be attributed to differences between groves. When we added butterfly presence to the model, a likelihood ratio test showed a highly significant improvement in model fit (p = 0.0001337), suggesting that locations selected by monarchs differ significantly in light variability from other monitored locations within the groves. The boxplots indicate that butterfly-present locations have higher light variability compared to other monitored locations.
+
+```{r cross-level, message=FALSE, warning=FALSE}
+# Cross-level interaction model
+cross_level_model <- lmer(light.avg_centered ~ seasonDay * butterfly_present + (1 | grove), data = df)
+
+# Summary of the model
+summary(cross_level_model)
+```
+
+To further investigate the relationship between butterfly presence and light conditions over time, we fit a model including an interaction between seasonDay and butterfly presence. The model revealed a significant interaction between seasonDay and butterfly presence (Est. = 66.180, t = 3.119). This suggests that not only do monarchs select locations with different light conditions, but this relationship changes throughout the overwintering season. Note that this model also used the simplified random effects structure with only random intercepts for groves due to convergence issues with the more complex random effects structure.

@@ -36,6 +36,15 @@ head(df)
 ```
 
 ```{r}
+model0 <- glm(temp.avg ~ 1,data=df)
+summary(model0)
+
+model1 <- glm(temp.avg ~ seasonDay + (1 + seasonDay | gove),data=df)
+model2 <- glm(temp.avg ~ seasonDay + monarch_presence + (1 + seasonDay | gove),data=df)
+```
+
+
+```{r}
 
 # One row summary for each area using means of means, and binary coding for butterfly
 library(tidyverse)

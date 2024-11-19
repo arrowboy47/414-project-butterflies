@@ -1,0 +1,315 @@
+---
+title: "NEWWORK"
+author: "aiden Kelly"
+date: "2024-11-18"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lme4)
+library(performance)
+```
+
+              
+```{r}
+df <- suppressMessages(read_csv('allgr_array_KianaRawdat.csv'))
+head(df)
+```
+
+## Assumptions and thoughts
+
+- non independence of observations within groves (between arrays)
+- vars: temp.avg, temp.min, temp.max, hum.avg, light.avg, light.std, cluster controls
+- 
+```{r}
+df <- df |> 
+  mutate(
+    # Parse the month and day components
+    month = as.integer(substr(month.day, 1, 2)),
+    day = as.integer(substr(month.day, 4, 5)),
+    
+    # Assign year based on month
+    year = ifelse(month >= 10, 2022, 2023),
+    
+    # Create a Date column
+    Date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"),
+    
+    # Calculate seasonDay and seasonWeight
+    seasonDay = as.numeric(difftime(Date, as.Date("2022-12-01"), units = "days"))
+  )
+
+colSums(is.na(df)) # lots of cols with missing vals so log like wont worksince lmer will drop nas
+
+
+```  
+
+```{r}
+model <- lmer(temp.avg ~ array + (1 | grove),
+              data = df, weights = seasonWeight)
+
+summary(model) # each array is signif at 0.05 level
+
+model1 <- lmer(temp.avg ~ array + light.avg +  (1 | grove), data = df, weights = seasonWeight)
+
+summary(model1) 
+
+AIC(model, model1)
+
+model2 <- lmer(temp.avg ~ array + light.avg + hum.avg + (1 | grove), data = df, weights = seasonWeight)
+
+summary(model2) 
+AIC(model1, model2) # BIG drop in AIC, so humidity is import in predicting temp.avg even though it is not signif
+
+
+model3 <- lmer(temp.avg ~ array + light.avg + hum.avg + temp.min + (1 | grove), data = df, weights = seasonWeight)
+AIC(model2, model3) # drop in AIC, so temp.min is not important in predicting temp.avg
+
+model4 <- lmer(temp.avg ~ array + light.avg + hum.avg + temp.min + temp.max + (1 | grove), data = df, weights = seasonWeight)
+AIC(model3, model4) # drop in AIC, so temp.max is not important in predicting temp.avg
+
+model4a <- lmer(temp.avg ~ array + hum.avg + temp.min + temp.max + (1 | grove), data = df, weights = seasonWeight)
+AIC(model4, model4a) # drop in AIC, not that large compared to the others so might be better for simpilicity
+summary(model4)
+
+model_final <- lmer(temp.avg ~ array + light.avg + (1 | grove), data = df, weights = seasonWeight)
+summary(model_final) 
+# min and max temp explain a lot but it seems kind of redundant to have both in the model since an avg temp is a combo of the two. especially when looking at anova table it is explaiing A LOT of the variance, potentially masking other prds and hiding the effect of array if it exists
+
+# model2a <- lmer(temp.avg ~ array  + hum.avg + (1 | grove), data = df, weights = seasonWeight)
+# AIC(model2, model2a) # drop in AIC, so light.avg is not important in predicting temp.avg
+```
+
+The array coefficients are not significant, meaning there's no strong evidence of temperature differences between arrays once other predictors (e.g., humidity, light, min/max temp) are included.
+However, this doesn't rule out differences entirely—it might be that other predictors explain most of the variability, leaving little independent variation for arrays to explain.
+
+especially since when we looks at a model of just array, each one is significant, but when we add other predictors, they are not. maybe  looking at how much variance is explained by each predictor would be useful
+
+```{r}
+anova(model4a)
+anova(model2)
+library(car)
+vif(model4) # no multicollinearity, so signif of each r likely valid
+
+
+
+```
+
+```{r}
+plot(resid(model4a) ~ fitted(model4a))
+qqnorm(resid(model4a))
+qqline(resid(model4a))
+
+VarCorr(model4a)
+VarCorr(model_final)
+
+```
+
+```{r}
+df$array <- as.factor(df$array)
+
+df$array <- relevel(df$array, ref = "NE")
+
+# Update 'butterfly_present' column in R
+df$butterfly_present <- ifelse(df$array == "Cluster", 1, 0)
+
+
+head(df)
+
+```
+
+
+
+
+```{r}
+library(lme4)
+
+model6a <- lmer(
+  temp.avg  ~ seasonDay + hum.avg + light.avg + (1 + seasonDay | grove),
+  data = df
+)
+summary(model)
+
+
+
+model6b <- lmer(
+  temp.avg  ~ seasonDay + hum.avg + light.avg + butterfly_present + (1 + seasonDay | grove),
+  data = df
+)
+summary(model)
+
+
+anova(model6a, model6b)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+model1 <- lmer(temp.avg ~ seasonDay + (1 + seasonDay | grove),data=df)
+model2 <- lmer(temp.avg ~ seasonDay + butterfly_present + (1 + seasonDay | grove),data=df)
+
+
+
+anova(model1, model2)
+```
+
+```{r}
+# Center only the response variables (not the predictors)
+df$temp.min_centered <- df$temp.min - mean(df$temp.min, na.rm = TRUE)
+df$temp.max_centered <- df$temp.max - mean(df$temp.max, na.rm = TRUE)
+df$hum.avg_centered <- df$hum.avg - mean(df$hum.avg, na.rm = TRUE)
+df$light.avg_centered <- df$light.avg - mean(df$light.avg, na.rm = TRUE)
+df$light.std_centered <- df$light.std - mean(df$light.std, na.rm = TRUE)
+
+# Re-run the models with the centered response variables
+temp.min.model1 <- lmer(temp.min_centered ~ seasonDay + (1 + seasonDay | grove), data = df)
+temp.min.model2 <- lmer(temp.min_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+anova(temp.min.model1, temp.min.model2)
+
+temp.max.model1 <- lmer(temp.max_centered ~ seasonDay + (1 + seasonDay | grove), data = df)
+temp.max.model2 <- lmer(temp.max_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+anova(temp.max.model1, temp.max.model2)
+
+hum.avg.model1 <- lmer(hum.avg_centered ~ seasonDay + (1 + seasonDay | grove), data = df)
+hum.avg.model2 <- lmer(hum.avg_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+anova(hum.avg.model1, hum.avg.model2)
+
+light.avg.model1 <- lmer(light.avg_centered ~ seasonDay + (1 + seasonDay | grove), data = df)
+light.avg.model2 <- lmer(light.avg_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+anova(light.avg.model1, light.avg.model2)
+
+light.std.model1 <- lmer(light.std_centered ~ seasonDay + (1 + seasonDay | grove), data = df)
+light.std.model2 <- lmer(light.std_centered ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+anova(light.std.model1, light.std.model2)
+
+```
+
+
+
+```{r}
+# Density plot for light.avg by butterfly presence
+ggplot(df, aes(x = light.avg, fill = factor(butterfly_present))) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Average Light", y = "Density", fill = "Butterfly Present") +
+  theme_minimal()
+
+
+
+```
+```{r}
+# Temperature minimum
+ggplot(df, aes(x=factor(butterfly_present), y=temp.min)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Minimum Temperature (°C)", 
+       title="Minimum Temperature by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+
+# Temperature maximum
+ggplot(df, aes(x=factor(butterfly_present), y=temp.max)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Maximum Temperature (°C)", 
+       title="Maximum Temperature by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+
+# Temperature average
+ggplot(df, aes(x=factor(butterfly_present), y=temp.avg)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Average Temperature (°C)", 
+       title="Average Temperature by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+
+# Humidity average
+ggplot(df, aes(x=factor(butterfly_present), y=hum.avg)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Average Humidity (%)", 
+       title="Average Humidity by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+
+# Light average
+ggplot(df, aes(x=factor(butterfly_present), y=light.avg)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Average Light", 
+       title="Average Light by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+
+# Light standard deviation
+ggplot(df, aes(x=factor(butterfly_present), y=light.std)) +
+  geom_boxplot(fill=c("#66c2a5", "#fc8d62")) +
+  labs(x="Butterfly Present", y="Light Standard Deviation", 
+       title="Light Variability by Butterfly Presence") +
+  scale_x_discrete(labels=c("No", "Yes")) +
+  theme_minimal()
+```
+```{r}
+# Install and load the performance package if not already installed
+#install.packages("performance")
+library(performance)
+
+
+
+# Light average models
+check_model(light.avg.model1)
+check_model(light.avg.model2)
+
+# Light standard deviation models
+check_model(light.std.model1)
+check_model(light.std.model2)
+
+```
+```{r}
+# Log transformation for light.avg and light.std
+df$log_light_avg <- log(df$light.avg + 1)  # Add 1 to avoid log(0) if necessary
+df$log_light_std <- log(df$light.std + 1)  # Add 1 to avoid log(0) if necessary
+
+# Refit models with the transformed variables
+light.avg.model1_log <- lmer(log_light_avg ~ seasonDay + (1 + seasonDay | grove), data = df)
+light.avg.model2_log <- lmer(log_light_avg ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+
+light.std.model1_log <- lmer(log_light_std ~ seasonDay + (1 + seasonDay | grove), data = df)
+light.std.model2_log <- lmer(log_light_std ~ seasonDay + butterfly_present + (1 + seasonDay | grove), data = df)
+
+
+
+
+```
+```{r}
+library(MASS)
+
+
+# Fit a linear model first (using your data, here I'm assuming df is the dataset)
+model_avg <- lm(light.avg ~ seasonDay + butterfly_present + grove, data = df)
+model_std <- lm(light.std ~ seasonDay + butterfly_present + grove, data = df)
+
+# Apply Box-Cox transformation to each model
+boxcox_avg <- boxcox(model_avg, plotit = TRUE)
+boxcox_std <- boxcox(model_std, plotit = TRUE)
+
+# Extract the best lambda (the one that maximizes the log-likelihood)
+lambda_avg <- boxcox_avg$x[which.max(boxcox_avg$y)]
+lambda_std <- boxcox_std$x[which.max(boxcox_std$y)]
+
+# Transform the variables using the identified lambda values
+df$light.avg.transformed <- (df$light.avg^lambda_avg - 1) / lambda_avg
+df$light.std.transformed <- (df$light.std^lambda_std - 1) / lambda_std
+
+
+```
+

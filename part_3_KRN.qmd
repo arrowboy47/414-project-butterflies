@@ -12,6 +12,7 @@ library(lme4)
 library(ggplot2)
 library(dplyr)
 library(tidyverse)
+library(ggeffects)
 
 #Seeing grove as a random effect
 df <- suppressMessages(read_csv('allgr_array_KianaRawdat.csv'))
@@ -72,8 +73,151 @@ seasonal_summary <- df %>%
 glimpse(seasonal_summary)
 ```
 ```{r}
-logistic_model <- glmer(butterfly_present ~ temp_mean + hum_mean + cold_days + sat_vp + humid_days + isothermality +  temp_range + (1|grove), data = seasonal_summary, family = binomial)
+logistic_model <- glm(butterfly_present ~ grove + temp_mean, data = seasonal_summary, family = binomial)
 summary(logistic_model)
+plot(ggpredict(logistic_model, c("temp_mean","grove"), type="re"),show_ci=FALSE)
+#ranef(logistic_model)
 ```
+
+```{r}
+head(fitted.values(logistic_model))
+```
+
+
+
+```{r}
+pred <- fitted.values(logistic_model) > .2
+table(pred,seasonal_summary$butterfly_present)
+```
+
+```{r}
+boxplot(fitted.values(logistic_model)~seasonal_summary$butterfly_present)
+```
+```{r}
+write_csv(seasonal_summary,"monarch_data.csv")
+```
+
+```{r}
+model1 <- glm(butterfly_present ~ temp_mean + humid_days + hum_mean, data = seasonal_summary, family = binomial)
+summary(model1)
+plot(ggpredict(model1, c("humid_days"), type="re"),show_ci=FALSE)
+#ranef(logistic_model)
+```
+
+Focus on differentials (like group mean centering)
+How does cluster site compare to other stations
+focus on variables that offer the most variability
+
+```{r}
+model0 <- glm(butterfly_present ~ 1, data = seasonal_summary, family = binomial)
+summary(model0)
+
+model1 <- glm(butterfly_present ~ hum_std, data = seasonal_summary, family = binomial)
+summary(model1)
+anova(model0,model1)
+```
+
+```{r}
+# Null model
+model0 <- glm(butterfly_present ~ 1, data = seasonal_summary, family = binomial)
+
+# Temperature-based models
+model_temp1 <- glm(butterfly_present ~ temp_mean, data = seasonal_summary, family = binomial)
+model_temp2 <- glm(butterfly_present ~ temp_range, data = seasonal_summary, family = binomial)
+model_temp3 <- glm(butterfly_present ~ temp_stability, data = seasonal_summary, family = binomial)
+model_temp4 <- glm(butterfly_present ~ temp_mean + temp_range, data = seasonal_summary, family = binomial)
+model_temp5 <- glm(butterfly_present ~ isothermality, data = seasonal_summary, family = binomial)
+model_temp6 <- glm(butterfly_present ~ temp_mean + temp_stability, data = seasonal_summary, family = binomial)
+model_temp7 <- glm(butterfly_present ~ diurnal_range + cold_days, data = seasonal_summary, family = binomial)
+
+# Humidity-based models
+model_hum1 <- glm(butterfly_present ~ hum_mean, data = seasonal_summary, family = binomial)
+model_hum2 <- glm(butterfly_present ~ hum_std, data = seasonal_summary, family = binomial)
+model_hum3 <- glm(butterfly_present ~ hum_range, data = seasonal_summary, family = binomial)
+model_hum4 <- glm(butterfly_present ~ hum_mean + hum_std, data = seasonal_summary, family = binomial)
+model_hum5 <- glm(butterfly_present ~ humid_days, data = seasonal_summary, family = binomial)
+
+# Combined temperature and humidity models
+model_th1 <- glm(butterfly_present ~ temp_mean + hum_mean, data = seasonal_summary, family = binomial)
+model_th2 <- glm(butterfly_present ~ temp_stability + hum_std, data = seasonal_summary, family = binomial)
+model_th3 <- glm(butterfly_present ~ temp_mean + hum_mean + temp_range, data = seasonal_summary, family = binomial)
+model_th4 <- glm(butterfly_present ~ vpd, data = seasonal_summary, family = binomial)
+model_th5 <- glm(butterfly_present ~ temp_stability + humid_days, data = seasonal_summary, family = binomial)
+
+# Light-based models
+model_light1 <- glm(butterfly_present ~ light_mean, data = seasonal_summary, family = binomial)
+model_light2 <- glm(butterfly_present ~ light_std, data = seasonal_summary, family = binomial)
+model_light3 <- glm(butterfly_present ~ light_range, data = seasonal_summary, family = binomial)
+
+# Complex multivariate models
+model_complex1 <- glm(butterfly_present ~ temp_mean + hum_mean + light_mean, data = seasonal_summary, family = binomial)
+model_complex2 <- glm(butterfly_present ~ temp_stability + hum_std + light_std, data = seasonal_summary, family = binomial)
+model_complex3 <- glm(butterfly_present ~ temp_mean + vpd + light_mean, data = seasonal_summary, family = binomial)
+model_complex4 <- glm(butterfly_present ~ isothermality + hum_range + light_range, data = seasonal_summary, family = binomial)
+
+# Compare models using AIC
+library(AICcmodavg)
+
+# Create a list of models
+models <- list(model0, model_temp1, model_temp2, model_temp3, model_temp4, model_temp5,
+              model_temp6, model_temp7, model_hum1, model_hum2, model_hum3, model_hum4,
+              model_hum5, model_th1, model_th2, model_th3, model_th4, model_th5,
+              model_light1, model_light2, model_light3, model_complex1, model_complex2,
+              model_complex3, model_complex4)
+
+# Create model names
+model_names <- c("null", "temp1", "temp2", "temp3", "temp4", "temp5", "temp6", "temp7",
+                "hum1", "hum2", "hum3", "hum4", "hum5", "th1", "th2", "th3", "th4", "th5",
+                "light1", "light2", "light3", "complex1", "complex2", "complex3", "complex4")
+
+# Compare models
+aictab(cand.set = models, modnames = model_names)
+
+# You can also do pairwise comparisons with the null model
+for(i in 2:length(models)) {
+  cat("\nComparing null model with", model_names[i], ":\n")
+  print(anova(model0, models[[i]], test="Chisq"))
+}
+```
+
+```{r}
+# Create differential variables
+seasonal_summary_diff <- seasonal_summary %>%
+  group_by(grove) %>%
+  mutate(
+    # For each variable, subtract the value at the Cluster (monarch) site
+    temp_mean_diff = temp_mean - temp_mean[array == "Cluster"],
+    temp_range_diff = temp_range - temp_range[array == "Cluster"],
+    temp_stability_diff = temp_stability - temp_stability[array == "Cluster"],
+    hum_mean_diff = hum_mean - hum_mean[array == "Cluster"],
+    hum_std_diff = hum_std - hum_std[array == "Cluster"],
+    light_mean_diff = light_mean - light_mean[array == "Cluster"],
+    vpd_diff = vpd - vpd[array == "Cluster"],
+    # Add any other variables you want to compare
+  ) %>%
+  ungroup()
+
+# Now try models with these differential variables
+model_diff1 <- glm(butterfly_present ~ temp_mean_diff, 
+                  data = seasonal_summary_diff, family = binomial)
+
+model_diff2 <- glm(butterfly_present ~ hum_mean_diff, 
+                  data = seasonal_summary_diff, family = binomial)
+
+model_diff3 <- glm(butterfly_present ~ temp_mean_diff + hum_mean_diff, 
+                  data = seasonal_summary_diff, family = binomial)
+
+# You could also look at whether sites are warmer/cooler or more/less humid
+seasonal_summary_diff <- seasonal_summary_diff %>%
+  mutate(
+    temp_warmer = ifelse(temp_mean_diff > 0, 1, 0),
+    hum_higher = ifelse(hum_mean_diff > 0, 1, 0)
+  )
+
+summary(model_diff1)
+summary(model_diff2)
+summary(model_diff3)
+```
+
 
 

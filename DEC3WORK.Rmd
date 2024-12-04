@@ -409,7 +409,7 @@ summary(random_slope_model9)
 ```{r}
 library(effects)
 
-random_slope_model9 <- lmer(light.avg_centered ~ seasonDay + butterfly_present * north + 
+random_slope_model9 <- lmer(light.std ~ seasonDay + butterfly_present * north + 
                             (1 + seasonDay + butterfly_present | grove), 
                             data = df2)
 
@@ -420,9 +420,31 @@ plot(effects::allEffects(random_slope_model9))
 
 plot(ggpredict(random_slope_model9, terms = c("butterfly_present", "grove", "north"), type="re", ci_level = NA))
 
-
+summary(random_slope_model9)
 ```
 
 
 
+```{r}
+# Get grove-level predictions
+predictions <- ggpredict(random_slope_model9, 
+                        terms = c("butterfly_present", "grove"), 
+                        type = "re")
+
+# Add the north information 
+predictions$north <- df2$north[match(predictions$group, df2$grove)]
+
+# Create plot
+ggplot(predictions, aes(x = x, y = predicted, 
+                       color = factor(north),
+                       group = group)) +  # group by grove to get individual lines
+  geom_line() +
+  scale_color_manual(values = c("blue", "red"),
+                    name = "Location",
+                    labels = c("South (0)", "North (1)")) +
+  labs(x = "Butterfly Present",
+       y = "Light Variability (stdev)") +
+  theme_bw()
+
+```
 

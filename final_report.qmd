@@ -12,6 +12,8 @@ Every fall, monarch butterflies undergo an annual mass migration from their summ
 
 Our dataset comes from research conducted by Kiana Saniee and Dr. Francis Villablanca [@saniee2022]. They directly investigated the "microclimate hypothesis" by taking temperature, humidity, and light measurements at various locations within monarch overwintering habitat. Within a grove, they placed a weather station (`array`) at a known aggregation site, where monarch butterflies are thought to be selecting favorable weather conditions. From that aggregation site, they placed four additional arrays in a repeated manner to capture variation within the grove (see @fig-samplingDesign). This arrangement of weather arrays was repeated across nine groves in San Luis Obispo, Santa Barbara, and Ventura County (see @fig-siteOverview). Climate measurements were taken every 5 minutes, and derivative summary measures were generated for each day (e.g., minimum, maximum, and average temperature).
 
+The research question we are investigating is whether there is a distinct
+
 ![Sampling design relative to the aggregation’s location in the groves. The first sample location was placed in the location of an aggregation (Aggregation). Two more sample locations were placed on the SE and NW edges of each grove relative to the aggregation’s location to capture morning light and prevailing wind (SE edge and NW edge, respectively). Two interior sample locations were placed halfway between the aggregation’s location and the grove’s edge in the NE and SW directions (NE interior and SW interior, respectively).](images/clipboard-521945598.png){#fig-samplingDesign fig-align="center"}
 
 ![Nine groves sampled along the California coast in Ventura, Santa Barbara, and San Luis Obispo counties that met study design criteria (see text). The groves from south to north are: Arundell Barranca (V), Harbor Blvd (V), Tecolote Canyon (SB), Hollister Ranch (SB), Spring Canyon Vandenberg Air Force Base (SB), Black Lake (SLO), Oceano Campground (SLO), Pismo Beach State Park (SLO), and Morro Bay Golf Course (SLO).](images/clipboard-4044369441.png){#fig-siteOverview}
@@ -21,6 +23,3 @@ Our dataset comes from research conducted by Kiana Saniee and Dr. Francis Villab
 ## Results
 
 ## Discussion
-
-
-

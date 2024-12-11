@@ -1,0 +1,20 @@
+---
+title: "STAT 414 - todo for part 3 submittion"
+author: "Kyle Nessen, Justin Mai, Aiden Kelly, Arneh Begi"
+date: "2024-12-11"
+format: pdf
+editor: visual
+---
+
+## Introduction
+
+
+
+## Materials and Methods
+
+## Results
+
+## Discussion
+
+
+

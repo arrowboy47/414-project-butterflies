@@ -1,0 +1,43 @@
+```{r}
+pp <- df|>
+  select(grove)
+unique(pp)
+
+df2 <- df %>%
+  mutate(north = ifelse(grove %in% c("OC", "P", "BL", "SC", "MB"), 1, 0))
+
+df2|>
+  filter(north == "HB")
+
+```
+
+```{r}
+df$light.avg_centered <- df$light.avg - mean(df$light.avg, na.rm = TRUE)
+df$light.std_centered <- df$light.std - mean(df$light.std, na.rm = TRUE)
+
+light.avg.model1 <- lmer(light.avg_centered ~ seasonDay + (1 + seasonDay | grove), data = df2)
+light.avg.model2 <- lmer(light.avg_centered ~ seasonDay + butterfly_present*north + (1 + seasonDay | grove), data = df2)
+anova(light.avg.model1, light.avg.model2)
+
+light.std.model1 <- lmer(light.std_centered  ~ seasonDay + (1 + seasonDay | grove), data = df2)
+light.std.model2 <- lmer(light.std_centered ~ seasonDay + butterfly_present*north + (1 + seasonDay | grove), data = df2)
+anova(light.std.model1, light.std.model2)
+```
+
+
+```{r}
+light.std.model2 <- lmer(light.std_centered ~ seasonDay + butterfly_present*north + (1 + seasonDay | grove), data = df2)
+
+light.avg.model2 <- lmer(light.avg_centered ~ seasonDay + butterfly_present*north + (1 + seasonDay | grove), data = df2)
+
+
+
+#ggplot(df2, aes(x = factor(butterfly_present), y = light.avg_centered)) +
+  #geom_boxplot() +
+  #labs(title = "Light Intensity by Butterfly Presence (South)",
+    #   x = "Butterfly Presence", y = "Light Intensity")
+
+summary(light.std.model2)
+summary(light.avg.model2)
+```
+

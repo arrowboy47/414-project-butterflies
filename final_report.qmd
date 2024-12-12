@@ -27,7 +27,7 @@ Point Conception, the westernmost point of California, represents a significant 
 Our dataset has two levels: arrays (weather stations) are Level 1, and grove is Level 2. Below is summary table of the variables used in our study:
 
 | Variable | Level | Description |
-|-------------------------|--------------|----------------------------------|
+|-----------------------|-----------------|--------------------------------|
 | Average Temperature (C) | 1 | Average temperature for the sampled day |
 | Minimum temperature (C) | 1 | Minimum temperature for the sampled day |
 | Maximum temperature (C) | 1 | Maximum temperature for the sampled day |
@@ -47,3 +47,5 @@ In our alternative approach, we developed a series of linear mixed-effects model
 ## Discussion
 
 ## References
+
+Dappled light timelapse https://youtu.be/F54Vqyv8WGg

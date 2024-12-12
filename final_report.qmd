@@ -26,6 +26,18 @@ Point Conception, the westernmost point of California, represents a significant 
 
 Our dataset has two levels: arrays (weather stations) are Level 1, and grove is Level 2. Below is summary table of the variables used in our study:
 
+| Variable | Level | Description |
+|-------------------------|--------------|----------------------------------|
+| Average Temperature (C) | 1 | Average temperature for the sampled day |
+| Minimum temperature (C) | 1 | Minimum temperature for the sampled day |
+| Maximum temperature (C) | 1 | Maximum temperature for the sampled day |
+| Average humidity (%) | 1 | Average humidity for the sampled day |
+| Average light (lux) | 1 | Average brightness at weather array for the sampled day |
+| Standard Deviation of light (lux) | 1 | The variability of light for the sampled day |
+| Monarch Presence (binary) | 1 | Whether the weather array was positioned at a known monarch aggregation site. 1 = monarch site, 0 = all others |
+| Day of Season | 1 | Count of days since the beginning of the monarch overwintering season |
+| North/South (binary) | 2 | Grove level categorization of latitudinal position. 0 = southern groves, 1 = northern groves. |
+
 ## Results
 
 To more directly investigate the microclimate hypothesis, we reclassified the array stations (aggregation, NE, NW, SE, SW) into a binary variable representing monarch butterfly presence or absence (1,0). We attempted several logistic regression models using this presence/absence classification as our response variable, with various microclimate measurements as predictors. However, these models proved statistically inappropriate due to complete separation in our dataset - monarch presence was perfectly consistent at aggregation sites and perfectly absent at all other array locations throughout the study period. This perfect separation prevented meaningful model convergence and parameter estimation, as there was no variation in presence/absence at any given location. Consequently, none of our attempted models provided better explanatory power than the null model, suggesting that alternative analytical approaches were needed to understand the relationship between microclimate conditions and monarch site selection.

@@ -40,9 +40,165 @@ Our dataset has two levels: arrays (weather stations) are Level 1, and grove is 
 
 ## Results
 
-To more directly investigate the microclimate hypothesis, we reclassified the array stations (aggregation, NE, NW, SE, SW) into a binary variable representing monarch butterfly presence or absence (1,0). We attempted several logistic regression models using this presence/absence classification as our response variable, with various microclimate measurements as predictors. However, these models proved statistically inappropriate due to complete separation in our dataset - monarch presence was perfectly consistent at aggregation sites and perfectly absent at all other array locations throughout the study period. This perfect separation prevented meaningful model convergence and parameter estimation, as there was no variation in presence/absence at any given location. Consequently, none of our attempted models provided better explanatory power than the null model, suggesting that alternative analytical approaches were needed to understand the relationship between microclimate conditions and monarch site selection.
 
-In our alternative approach, we developed a series of linear mixed-effects models to predict each microclimate variable (temperature, humidity, and light) independently. Our base models incorporated grove as a random effect to account for site-specific variation, and included seasonDay (days since the start of the season) as a fixed effect to control for temporal trends. We then compared these base models to expanded versions that included monarch presence as an additional predictor. This approach allowed us to evaluate whether monarch presence significantly improved our ability to predict microclimate conditions, while accounting for both the temporal nature of our data and the nested structure of our sampling design within different groves.
+## 3. Results
+
+To more directly investigate the microclimate hypothesis, we reclassified the array stations (aggregation, NE, NW, SE, SW) into a binary variable representing monarch butterfly presence or absence (1, 0). We attempted several logistic regression models using this presence/absence classification as our response variable, with various microclimate measurements as predictors.
+
+However, these models proved statistically inappropriate due to complete separation in our dataset — monarch presence was perfectly consistent at aggregation sites and perfectly absent at all other array locations throughout the study period. This perfect separation prevented meaningful model convergence and parameter estimation, as there was no variation in presence/absence at any given location. Consequently, none of our attempted models provided better explanatory power than the null model, suggesting that alternative analytical approaches were needed to understand the relationship between microclimate conditions and monarch site selection.
+
+In our alternative approach, we developed a series of linear mixed-effects models to predict each microclimate variable (temperature, humidity, and light) independently. Our base models incorporated `grove` as a random effect to account for site-specific variation and included `seasonDay` (days since the start of the season) as a fixed effect to control for temporal trends. We then compared these base models to expanded versions that included monarch presence as an additional predictor. This approach allowed us to evaluate whether monarch presence significantly improved our ability to predict microclimate conditions, while accounting for both the temporal nature of our data and the nested structure of our sampling design within different groves.
+
+
+
+
+
+
+### Exploratory Data Analysis
+
+Before creating the last model, important Level 1 variables showed promise. SeasonDay stood out by tracking changes in temperature, humidity and light in each grove. On Level 2, the North/South grouping appeared as the key variable. This grouping revealed big differences in temperature, humidity and light between these areas. The link between butterfly presence and North/South regions was very important. This was especially true for light, which prior we assumed that location and butterfly presence together affected light conditions.
+
+### Looking Into Level 2 Grouping
+
+Using our temperature as a test we ran an anova with and without north to see if there was 
+```{r}
+
+centered_variables <- c("temp.min_centered", "temp.max_centered", "hum.avg_centered", "light.avg_centered", "light.std_centered")
+
+
+results <- data.frame(Variable = centered_variables, AIC_with_north = NA, AIC_without_north = NA, p_value = NA)
+
+for (var in centered_variables) {
+  
+  model_with_north <- lmer(as.formula(paste0(var, " ~ seasonDay + butterfly_present + north + (1 + seasonDay | grove)")), data = df2)
+  
+  
+  model_without_north <- lmer(as.formula(paste0(var, " ~ seasonDay + butterfly_present + (1 + seasonDay | grove)")), data = df2)
+  
+  
+  results$AIC_with_north[results$Variable == var] <- AIC(model_with_north)
+  results$AIC_without_north[results$Variable == var] <- AIC(model_without_north)
+  
+  
+  anova_result <- anova(model_with_north, model_without_north)
+  results$p_value[results$Variable == var] <- anova_result$Pr[2]  # Get p-value from the second row
+}
+
+results
+
+```
+
+In the first ANOVA results, we studied the importance of the Level 2 grouping variable, North, across different small climate variables. North did not show a big effect on temperature minimum (temp.min_centered) and temperature maximum (temp.max_centered). The p-values were 0.417 and 0.511, meaning North/South grouping probably does not affect these temperature measures much. For humidity average (hum.avg_centered), the p-value of 0.012 showed that North really impacted humidity, suggesting differences in humidity between North and South. For light average (light.avg_centered) and light standardized (light.std_centered), North did not play a big role, as seen from p-values of 0.903 and 0.867. These results suggest that North/South differences matter for humidity but not much for temperature or light. Humidity differences are very important.
+
+
+### The Null Model
+
+Since with our unique model stucture we could not construct a null model without a set response variable. So what we decided to do was create a general null model; we needed to account for time with seasonDay, and have seasonDay vary across the groves, to account for groves that had their studies start earlier than the others. Since we only cared about if an enviornmental condtion was associated with a monarch presence our null model would not include it as a predictor. Our response in the null model would be the enviornmental condtion that we wanted to study. We would test the association with monarch presence by including it as a predictor and comparing it to the null model, so we reached this null model:
+
+null_model <- lmer(enviornmental_condtion ~ seasonDay + (1 + seasonDay | grove), data = df2)
+
+
+
+### The Final Model
+
+We started developing our model by checking basic models for each centered response variable. These variables were temp.min_centered, temp.max_centered, hum.avg_centered, light.avg_centered and light.std_centered. The null models included seasonDay as a fixed effect and allowed both random intercepts and random slopes for seasonDay across groves to account for variability in patterns over time within each grove
+
+Then, we added butterfly_present as another factor to the basic models and checked how it interacted with north, our Level 2 grouping variable. We used likelihood ratio tests via ANOVA to compare these updated models to their null versions.
+
+These comparisons showed that butterfly_present had a strong effect only on light.avg_centered and light.std_centered. Since we saw that north was signifigant with one of our previous predictors, we wanted to interact it with butterfly_present to see if butterflies were more apparent in the north or south. Further examination showed that, when including how butterfly_present and north interacted, the effect of butterfly_present on light.avg_centered stopped being statistcally siginifigant, but for light.std_centered, butterfly_present was still statistically signifigant, so that was our final model.
+
+The final model for light.std_centered was like this꞉
+```{r}
+light.std.final <- lmer(light.std_centered ~ seasonDay + butterfly_present * north + (1 + seasonDay | grove), data = df2)
+
+summary(light.std.final)
+
+light.std.null <- lmer(light.std_centered ~ seasonDay + (1 + seasonDay | grove), data = df2)
+
+summary(light.std.null)
+
+```
+
+As we could not fit a null model with our structure, we had to find that light.std was associated first 
+
+
+Fixed Effects:
+(Intercept): The estimated average value of light.std_centered when seasonDay is at the start, butterflies are not present, and in the south. The value of -955.264 suggests that, the average centered light variability is negative, but the high standard error 3866.302 indicates this estimate is not precise.
+
+seasonDay: The fixed effect of time (days into the season) on light.std_centered. The coefficient (7.852) suggests a slight increasing trend over time, though it is not statistically significant (t = 0.353).
+
+butterfly_present: The effect of butterfly presence on light.std_centered. The estimate (2862.969) suggests that when butterflies are present, the light variability is high associated compared to when they are absent. This effect is statistically significant, as the absolute value of the t-statistic (2.312) is greater than the rule-of-thumb threshold (~2).
+
+north: The baseline difference in light.std_centered between northern and southern groves. The estimate (-443.008) indicates slightly lower light variability in northern groves, but this effect is not statistically significant (t = -0.103).
+
+butterfly_present:north: The interaction term quantifies how the effect of butterfly presence differs between northern and southern groves. The estimate (497.309) suggests a slightly larger increase in light variability in northern groves when butterflies are present. However, this effect is not statistically significant (t = 0.304). This is also supported in figure #1 where we can see that even when north is 0 and 1, there is no visual difference in butterfly presence values.
+
+Random Effects:
+grove Intercept Variance (78045647): There is considerable variability in baseline light variability across groves. The standard deviation (8834.34) represents the average deviation in intercepts across groves.
+
+grove seasonDay Slope Variance (1374): There is minimal variability in how light variability trends over time across groves. The correlation (-1.00) suggests a perfect negative relationship between the random intercepts and slopes.
+
+Residual Variance (240198680): This represents the variability in light.std_centered not explained by the fixed or random effects, with a standard deviation of 15498.34.
+
+
+### Confidence Interval
+```{r}
+# Given values
+random_slope_seasonDay <- 37.07
+random_slope_seasonDay_SE <- 6.56
+
+# Critical value for 95% CI
+z_critical <- 1.96
+
+# Calculate CI
+lower_bound <- random_slope_seasonDay - z_critical * random_slope_seasonDay_SE
+upper_bound <- random_slope_seasonDay + z_critical * random_slope_seasonDay_SE
+
+cat("[", lower_bound, ",", upper_bound, "]\n")
+```
+The 95% confidence interval for the random slope of seasonDay is [24.2124, 49.9276]. This suggests that, on average, the effect of seasonDay on the centered light.std varies across groves. We are 95% confident that the random slope of seasonDay lies within this range, so there is extreme variance on how seasonDay impacts light.std across different groves. Since 0 is not within the 95% confidence interval for the random slope of seasonDay ([24.2124, 49.9276]), we can conclude that there is significant variability in how seasonDay affects light.std across groves, indicating that the association of butterfly presense is not consistent across all groves.
+
+Reduction in Level 2 (Intercept) Variance:
+$${Reduction} = \frac{53,000,000 - 7,800,000}{53,000,000} = 0.851 $$
+Reduction in Level 1 (Season Day) Variance:
+$${Reduction} = \frac{866 - 1,374}{866} = -0.587$$
+In the final model, we observed a substantial reduction in Level 2 (grove-level) variance, accounting for 85.1% of the unexplained variation. For the fixed effects, the interaction between butterfly presence and north-south grouping explained much of the site-specific variation. The Level 1 (season-day) variance saw a slight increase due to the added complexity of the interaction terms, indicating that these terms captured additional sources of variation at the daily temporal scale. The residual variance unchanged.
+
+Looking at the residual plots for the final model (Figure 2) suggest that the assumptions of the linear mixed model are generally met. The residuals vs. fitted values plot shows a random scatter of points around the horizontal line, indicating that the residuals are evenly distributed across the range of fitted values. The normal Q-Q plot shows that the residuals follow a roughly normal distribution, with most points falling close to the diagonal line. However, there are a few points deviating from the line in the tails, suggesting some from normality.
+
+The random effects plot for grove level shows a relatively even distribution of variance across the groves, indicating that the random effects assumption is reasonable.
+
+While there are some minor deviations from the ideal assumptions, the overall model fit appears to be satisfactory. However, it is important to consider the potential impact of the identified issues on the interpretation of the results. Future analyses could explore alternative model specifications or data transformations to improve the model fit.
+
+
+
+#Figure 1
+```{r, echo=FALSE}
+plot(effects::allEffects(light.std.final))
+```
+This figure shows the relationship between seasonDay, butterfly_present*north, and light.std_centered. The plots indicate a weak or non-existent correlation between the variables, suggesting limited influence on light.std_centered.
+
+#Figure 2
+```{r, echo=FALSE}
+# Setting up the plotting layout (2x2 grid)
+par(mfrow = c(2, 2))
+
+# 1. Residuals vs Fitted
+plot(fitted(light.std.final), resid(light.std.final), 
+     xlab = "Fitted Values", ylab = "Residuals", 
+     main = "Residuals vs Fitted Values")
+abline(h = 0, col = "red") # Adding a horizontal line at 0 for reference
+
+# 2. QQ plot
+qqnorm(resid(light.std.final))
+qqline(resid(light.std.final), col = "red")
+
+# 3. Random Effects Plot
+plot(ranef(light.std.final)$grove, main = "Random Effects (Grove)", 
+     ylab = "Variance", xlab = "Grove Level")
+
+
+```
 
 ## Discussion
 

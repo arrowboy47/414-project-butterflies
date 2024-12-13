@@ -131,7 +131,7 @@ butterfly_present: The effect of butterfly presence on light.std_centered. The e
 
 north: The baseline difference in light.std_centered between northern and southern groves. The estimate (-443.008) indicates slightly lower light variability in northern groves, but this effect is not statistically significant (t = -0.103).
 
-butterfly_present:north: The interaction term quantifies how the effect of butterfly presence differs between northern and southern groves. The estimate (497.309) suggests a slightly larger increase in light variability in northern groves when butterflies are present. However, this effect is not statistically significant (t = 0.304). This is also supported in figure #1 where we can see that even when north is 0 and 1, there is no visual difference in butterfly presence values.
+butterfly_present:north: The interaction term quantifies how the effect of butterfly presence differs between northern and southern groves. The estimate (497.309) suggests a slightly larger increase in light variability in northern groves when butterflies are present. However, this effect is not statistically significant (t = 0.304). This is also supported in (Figure 1) where we can see that even when north is 0 and 1, there is no visual difference in butterfly presence values.
 
 Random Effects:
 grove Intercept Variance (78045647): There is considerable variability in baseline light variability across groves. The standard deviation (8834.34) represents the average deviation in intercepts across groves.

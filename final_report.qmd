@@ -6,7 +6,66 @@ date: "2024-12-11"
 format: pdf
 editor: visual
 bibliography: references.bib
+execute:
+  echo: false  
+  output: true  
+  warning: false  
+  error: false     
+  message: false   
+  dev: "png"
+  dpi: 300
+  fig-width: 5   # Default figure width in inches
+  fig-height: 4   # Default figure height in inches
 ---
+
+```{r}
+#| output: false
+library(tidyverse)
+library(lme4)
+library(performance)
+df <- read_csv('allgr_array_KianaRawdat.csv')
+df <- df |> 
+  mutate(
+    # Parse the month and day components
+    month = as.integer(substr(month.day, 1, 2)),
+    day = as.integer(substr(month.day, 4, 5)),
+    
+    # Assign year based on month
+    year = ifelse(month >= 10, 2022, 2023),
+    
+    # Create a Date column
+    Date = as.Date(paste(year, month, day, sep = "-"), format = "%Y-%m-%d"),
+    
+    # Calculate seasonDay and seasonWeight
+    seasonDay = as.numeric(difftime(Date, as.Date("2022-12-01"), units = "days"))
+  )
+
+colSums(is.na(df)) # lots of cols with missing vals so log like wont worksince lmer will drop nas
+
+df$array <- as.factor(df$array)
+df$array <- relevel(df$array, ref = "NE")
+df$butterfly_present <- ifelse(df$array == "Cluster", 1, 0)
+
+# Center variables
+df$temp.avg_centered <- df$temp.avg - mean(df$temp.avg, na.rm = TRUE)
+df$temp.min_centered <- df$temp.min - mean(df$temp.min, na.rm = TRUE)
+df$temp.max_centered <- df$temp.max - mean(df$temp.max, na.rm = TRUE)
+df$hum.avg_centered <- df$hum.avg - mean(df$hum.avg, na.rm = TRUE)
+df$light.avg_centered <- df$light.avg - mean(df$light.avg, na.rm = TRUE)
+df$light.std_centered <- df$light.std - mean(df$light.std, na.rm = TRUE)
+
+pp <- df|>
+  select(grove)
+unique(pp)
+
+df2 <- df %>%
+  mutate(north = ifelse(grove %in% c("OC", "P", "BL", "SC", "MB"), 1, 0))
+
+df2|>
+  filter(north == "HB")
+
+
+```
 
 ## Introduction
 
@@ -48,11 +107,19 @@ In our alternative approach, we developed a series of linear mixed-effects model
 
 ### Exploratory Data Analysis
 
-Before creating the last model, important Level 1 variables showed promise. SeasonDay stood out by tracking changes in temperature, humidity and light in each grove. On Level 2, the North/South grouping appeared as the key variable. This grouping revealed big differences in temperature, humidity and light between these areas. The link between butterfly presence and North/South regions was very important. This was especially true for light, which prior we assumed that location and butterfly presence together affected light conditions.
+Our analysis focused on environmental variables with direct biological significance for monarch butterfly survival and habitat selection. For temperature, we examined three metrics: minimum, maximum, and mean daily temperatures. These represent critical biological thresholds - minimum temperatures that could prevent flight or cause freezing, maximum temperatures that could drive excessive metabolic costs, and mean temperatures to characterize overall thermal conditions. Daily humidity averages were analyzed as higher humidity generally supports butterfly survival, with extreme values being less biologically relevant. For light conditions, we examined both average daily light levels and their standard deviation, with the latter serving as a proxy for "dappled light" - the variable light conditions created by forest canopy that may help butterflies regulate their body temperature (see appendix for video).
 
-### Looking Into Level 2 Grouping
+Initial exploratory analysis revealed substantial variation in these microclimate variables both within and across groves. Temperature patterns showed clear site-specific differences, with mean daily temperatures ranging from approximately 9°C to 14°C across groves. The boxplots indicate that some groves (e.g., HR) consistently maintained higher temperatures, while others (e.g., BL) showed consistently lower temperatures throughout the study period.
 
-Using our temperature as a test we ran an anova with and without north to see if there was
+Light measurements demonstrated particularly interesting patterns. While average light levels varied considerably between groves, the standard deviation of light measurements - our measure of light variability showed even more pronounced differences between butterfly aggregation sites and control locations. This variation in light conditions could be especially important given the hypothesized role of dappled light in butterfly thermoregulation.
+
+Humidity patterns revealed generally high variance within groves but also suggested some systematic differences between northern and southern sites, warranting further investigation of geographical effects in our subsequent modeling.
+
+Please see Appendix for all plots related to temperature, humidity, and light.
+
+### Level 2 Grouping
+
+Using our temperature as a test response variable, we ran an anova with and without north to see if there were differences.
 
 ```{r}
 library(lme4)
@@ -98,7 +165,7 @@ Then, we added butterfly_present as another factor to the basic models and check
 
 These comparisons showed that butterfly_present had a strong effect only on light.avg_centered and light.std_centered. Since we saw that north was significant with one of our previous predictors, we wanted to interact it with butterfly_present to see if butterflies were more apparent in the north or south. Further examination showed that, when including how butterfly_present and north interacted, the effect of butterfly_present on light.avg_centered stopped being statistically significant, but for light.std_centered, butterfly_present was still statistically significant, so that was our final model.
 
-The final model for light.std_centered was like this꞉
+The final model for light.std_centered:
 
 ```{r}
 light.std.final <- lmer(light.std_centered ~ seasonDay + butterfly_present * north + (1 + seasonDay | grove), data = df2)
@@ -156,17 +223,14 @@ The random effects plot for grove level shows a relatively even distribution of 
 
 While there are some minor deviations from the ideal assumptions, the overall model fit appears to be satisfactory. However, it is important to consider the potential impact of the identified issues on the interpretation of the results. Future analyses could explore alternative model specifications or data transformations to improve the model fit.
 
-#Figure 1
-
 ```{r, echo=FALSE}
+par(mar = c(5, 4, 4, 2))
 plot(effects::allEffects(light.std.final))
 ```
 
 This figure shows the relationship between seasonDay, butterfly_present\*north, and light.std_centered. The plots indicate a weak or non-existent correlation between the variables, suggesting limited influence on light.std_centered.
 
-#Figure 2
-
-```{r, echo=FALSE}
+```{r}
 # Setting up the plotting layout (2x2 grid)
 par(mfrow = c(2, 2))
 
@@ -189,6 +253,146 @@ plot(ranef(light.std.final)$grove, main = "Random Effects (Grove)",
 
 ## Discussion
 
-## References
+The most significant results that we found were that butterfly presence at an array location was associated with significantly higher deviations of light. As well as, the other weather conditions, such as average humidity and average temperature, not being significantly predicted by butterfly presents. These results indicated to us that the microclimate hypothesis is not broadly supported by our data. In addition to these results, we also found that the weather conditions at each aggregation site were different from each other and there was no difference between each array location within a grove. Again, this is in contrast to the microclimate hypothesis, which would predict that all the aggregation sites would have the weather conditions and the other arrays within the grove would be different from the aggregation site. In the previous study by Kiana Saniee and Francis Villablanca, they found the same results, using a different statistical model, which further supports our findings.
 
-Dappled light timelapse https://youtu.be/F54Vqyv8WGg
+For light to be higher on average at locations where monarch butterflies are present, this means that throughout the day, there is more direct sunlight on the arrays with butterflies. While, a higher standard deviation of light means that throughout the day, the amount of light fluctuates a lot more on sites with butterflies compared to one without. This finding could potentially be in support of another idea discussed in monarch butterfly research. Dappled light refers to varied light that shines through gaps in tree canopies. It is hypothesized that butterflies prefer dappled light since they are cold blooded insects and rely on light in order to warm and cool their bodies off. Since here was not evidence in support of the microclimate hypothesis, potentially this phenomenon is part of the reason why the monarchs are selecting the specify trees they go to. It is also interesting to think of the other factors that could be influencing the butterflies behavior.
+
+A major limitation of our study is that there was no data collected on the count of butterflies at each array location. This would have been useful to have in order to see if the number of butterflies at each location was correlated with the weather conditions. This would have allowed us to run models with butterfly count as a response rather than the conditions of the weather as responses. Enabling us to see how the presence of butterflies changed over time and how potential fluctuations of weather conditions effect monarch presences. Another limitation is the use of the multiple "reverse models". This doesn't allow us to have one model where we would get to include all the variables and see how they interact with each other. This limits the amount of variability that we can account for in any single model.
+
+Despite these limitations the study dataset has several strengths that give credibility to our results. The sampling design was rigorous and well designed, with consistent placement of weather arrays throughout nine distint groves. These groves were far apart, allowing us to control for grove-to-grove differences. Additionally, the high frequency of data capture gives us a rich picture of microclimate variability within the grove across a range of biologically relevant factors. We used a multilevel modeling approach toa ccount for the nested structure of our data. This approach allows us to investigate patterns that may have been missed with simpler approaches.
+
+Future research should incorporate butterfly abundance as a direct response variable to environmental conditions. Using automated cameras for remote monitoring would allow researchers to collect detailed data on butterfly behavior and movement patterns in relation to changing light conditions throughout the day. This technology could help quantify how monarchs utilize different light environments and validate our findings about the importance of variable light conditions.
+
+Given that traditional microclimate variables like temperature and humidity fluctuate significantly and are challenging to predict, investigating light patterns as an indicator of habitat suitability offers a promising alternative approach. The physical structure of tree canopies that creates these light patterns remains relatively stable over time, making it a potentially reliable predictor that monarchs could assess when selecting overwintering sites. Monarchs' well-developed visual system suggests they could be particularly attuned to these structural cues. This approach has practical advantages: habitat assessment based on canopy structure and resulting light patterns could be conducted outside of the overwintering season and without requiring butterfly presence. If structural features prove to be reliable predictors of monarch habitat use, researchers could conduct manipulation experiments - such as selective branch removal or installation of reflective surfaces - to test how monarchs respond to altered light conditions.
+
+Understanding how monarchs select overwintering sites has become increasingly crucial since their recent designation as a federally threatened species [@endanger2024]. Translating this research into practical guidance for land managers could significantly impact conservation efforts by helping identify, protect, and potentially enhance suitable overwintering habitats.
+
+## Appendix
+
+### Dappled Light Timelapse
+
+You can see a brief video at the link below of what monarch biologists refer to "dappled light." This is our proxy for the standard deviation of light.
+
+[Dappled Light Timelapse](https://youtu.be/F54Vqyv8WGg)
+
+### Exploratory Analysis Plots
+
+```{r}
+
+ # Plot for mean temperature
+ggplot(df, aes(x = grove, y = temp.avg, fill = factor(butterfly_present))) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("#999999", "#E69F00"),
+    labels = c("Monarchs Absent", "Monarchs Present"),
+    name = "Site Type"
+  ) +
+  labs(
+    title = "Average Daily Temperature by Grove and Monarch Presence",
+    x = "Grove",
+    y = "Average Temperature (°C)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+# Plot for minimum temperature
+ggplot(df, aes(x = grove, y = temp.min, fill = factor(butterfly_present))) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("#999999", "#E69F00"),
+    labels = c("Monarchs Absent", "Monarchs Present"),
+    name = "Site Type"
+  ) +
+  labs(
+    title = "Minimum Daily Temperature by Grove and Monarch Presence",
+    x = "Grove",
+    y = "Minimum Temperature (°C)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+# Plot for maximum temperature
+ggplot(df, aes(x = grove, y = temp.max, fill = factor(butterfly_present))) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("#999999", "#E69F00"),
+    labels = c("Monarchs Absent", "Monarchs Present"),
+    name = "Site Type"
+  ) +
+  labs(
+    title = "Maximum Daily Temperature by Grove and Monarch Presence",
+    x = "Grove",
+    y = "Maximum Temperature (°C)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+# Plot for average humidity
+ggplot(df, aes(x = grove, y = hum.avg, fill = factor(butterfly_present))) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("#999999", "#E69F00"),
+    labels = c("Monarchs Absent", "Monarchs Present"),
+    name = "Site Type"
+  ) +
+  labs(
+    title = "Average Daily Humidity by Grove and Monarch Presence",
+    x = "Grove",
+    y = "Average Humidity (%)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+# Plot for average light
+ggplot(df, aes(x = grove, y = light.avg, fill = factor(butterfly_present))) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("#999999", "#E69F00"),
+    labels = c("Monarchs Absent", "Monarchs Present"),
+    name = "Site Type"
+  ) +
+  labs(
+    title = "Average Daily Light by Grove and Monarch Presence",
+    x = "Grove",
+    y = "Average Light (Lux)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+# Plot for light standard deviation (variability)
+ggplot(df, aes(x = grove, y = light.std, fill = factor(butterfly_present))) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("#999999", "#E69F00"),
+    labels = c("Monarchs Absent", "Monarchs Present"),
+    name = "Site Type"
+  ) +
+  labs(
+    title = "Daily Light Variability by Grove and Monarch Presence",
+    x = "Grove",
+    y = "Light Standard Deviation (Lux)"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+
+```
+
+## References

@@ -14,8 +14,8 @@ execute:
   message: false   
   dev: "png"
   dpi: 300
-  fig-width: 5   # Default figure width in inches
-  fig-height: 4   # Default figure height in inches
+  fig-width: 5   
+  fig-height: 4   
 ---
 
 ```{r}
